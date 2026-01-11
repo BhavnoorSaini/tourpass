@@ -1,42 +1,21 @@
 import React from 'react';
-import {Tabs} from 'expo-router';
+import {Tabs, Redirect} from 'expo-router';
 import {IconSymbol} from "@/components/ui/icon-symbol";
+import { useAuth } from "@/providers/AuthProvider";
 
-export default function _Layout() {
+export default function TabsLayout() {
+    const { user, initializing } = useAuth();
+
+    if (initializing) {
+        return null;
+    }
+
+    if (!user) {
+        return <Redirect href="/(auth)/sign-in" />
+    }
+
     return (
-        <Tabs
-            screenOptions={{
-                tabBarShowLabel: false,
-                tabBarActiveTintColor: '#007AFF',
-                tabBarInactiveTintColor: '#8E8E93',
-                tabBarItemStyle: {
-                    width: '100%',
-                    height: '100%',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                },
-                tabBarStyle: {
-                    borderRadius: 20,
-                    marginHorizontal: 80,
-                    marginBottom: 20,
-                    height: 48,
-                    position: 'absolute',
-                    overflow: 'hidden',
-                    borderWidth: 0,
-                    backgroundColor: '#FFFFFF',
-                    paddingBottom: 4,
-                    paddingTop: 4,
-                    shadowColor: '#000',
-                    shadowOffset: {
-                        width: 0,
-                        height: 4,
-                    },
-                    shadowOpacity: 0.12,
-                    shadowRadius: 12,
-                    elevation: 8,
-                }
-            }}
-        >
+        <Tabs screenOptions={{ tabBarShowLabel: false }}>
             <Tabs.Screen
                 name="index"
                 options={{
