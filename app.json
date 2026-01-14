@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "tourpass",
-    "slug": "tourpass",
+    "slug": "tourpass-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -18,8 +18,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "output": "static",
@@ -47,9 +46,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "91dcbce1-db51-451b-9e99-c2b8a5fa7f4f"
+        "projectId": "659b66b8-f1be-4ee0-a2c4-fa1e32adefc7"
       }
     },
-    "owner": "bhavnoor"
+    "owner": "tourpass"
   }
 }
