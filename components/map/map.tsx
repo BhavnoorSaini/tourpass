@@ -1,4 +1,4 @@
-import Mapbox, { MapView, Camera } from '@rnmapbox/maps';
+import Mapbox, { MapView, StyleImport, ShapeSource, LineLayer, Camera, LocationPuck} from '@rnmapbox/maps';
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -7,6 +7,8 @@ import {
   Animated,
   PanResponder,
   Dimensions,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 
 const accessToken = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
@@ -16,10 +18,32 @@ if (!accessToken) {
 Mapbox.setAccessToken(accessToken);
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SLIDER_HEIGHT = 220; // px of the verti0cal slider track
+const SLIDER_HEIGHT = 220; // px of the vertical slider track
 const SLIDER_WIDTH = 44;
 const MIN_PITCH = 0;
 const MAX_PITCH = 90; // sane max for Mapbox mobile
+
+const requestLocationPermission = async () => {
+  if (Platform.OS === 'android') {
+    try {
+      const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message: 'This app needs access to your location to show your position on the map.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  }
+  return true;
+};
 
 function pitchToY(pitch: number) {
   // convert pitch to a y position (0..SLIDER_HEIGHT) where 0 is top (max pitch) and SLIDER_HEIGHT is bottom (min pitch)
@@ -37,6 +61,8 @@ export default function Map() {
   const cameraRef = useRef<any>(null);
   const [pitch, setPitch] = useState<number>(45);
 
+
+
   // Animated value for knob position (y from 0..SLIDER_HEIGHT)
   const knobAnim = useRef(new Animated.Value(pitchToY(pitch))).current;
   const knobYRef = useRef<number>(pitchToY(pitch)); // numeric current y
@@ -44,6 +70,7 @@ export default function Map() {
 
   // When component mounts / when pitch changes, set initial camera pitch and sync knob
   useEffect(() => {
+    requestLocationPermission();
     cameraRef.current?.setCamera({ pitch, duration: 0 });
     knobAnim.setValue(pitchToY(pitch));
     knobYRef.current = pitchToY(pitch);
@@ -77,6 +104,11 @@ export default function Map() {
     <View style={styles.container}>
       <MapView style={styles.map} styleURL={'mapbox://styles/mapbox/standard'}>
         <Camera ref={cameraRef} />
+        <LocationPuck
+            puckBearingEnabled
+            puckBearing="heading"
+            pulsing={{ isEnabled: true }}
+        />
       </MapView>
 
       {/* Vertical slider on the right side */}
