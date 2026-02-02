@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Redirect } from 'expo-router';
 import { View, Text, TextInput, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
+import { ImageBackground } from 'react-native';
 
 export default function SignIn() {
   const { signIn, user, initializing } = useAuth();
@@ -33,32 +34,39 @@ export default function SignIn() {
   };
 
   return (
-    <View className="flex-1 justify-center px-6 gap-4 bg-white">
+      <ImageBackground
+          source={require('@/assets/images/Tourpassbackground.png')}
+          resizeMode="cover"
+          className="flex-1"
+      >
+    <View className="flex-1 justify-end px-6 pb-12 gap-4 bg-white/10">
       <View className="gap-2">
-        <Text className="text-2xl font-semibold">Welcome back</Text>
+        <Text className="text-2xl font-semibold text-white">Welcome back</Text>
         <Text className="text-gray-500">Sign in to continue</Text>
       </View>
 
       <View className="gap-3">
         <View className="gap-2">
-          <Text className="text-gray-700">Email</Text>
+          <Text className="text-white/80">Email</Text>
           <TextInput
             className="border border-gray-300 rounded px-3 py-2"
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.com"
+            placeholder ="you@example.com"
+            placeholderTextColor="rgba(255,255,255,0.6)"
           />
         </View>
         <View className="gap-2">
-          <Text className="text-gray-700">Password</Text>
+          <Text className="text-white/80">Password</Text>
           <TextInput
             className="border border-gray-300 rounded px-3 py-2"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
             placeholder="********"
+            placeholderTextColor="rgba(255,255,255,0.6)"
           />
         </View>
       </View>
@@ -76,6 +84,7 @@ export default function SignIn() {
         <Link href="/(auth)/sign-up" className="text-blue-600 font-semibold">Sign up</Link>
       </View>
     </View>
+      </ImageBackground>
   );
 }
 

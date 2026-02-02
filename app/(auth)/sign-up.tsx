@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Redirect } from 'expo-router';
 import { View, Text, TextInput, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
+import { ImageBackground } from 'react-native';
 
 export default function SignUp() {
   const { signUp, user, initializing } = useAuth();
@@ -45,35 +46,42 @@ export default function SignUp() {
   };
 
   return (
-    <View className="flex-1 justify-center px-6 gap-4 bg-white">
+      <ImageBackground
+          source={require('@/assets/images/tourpassbackgroundsignup.png')}
+          resizeMode="cover"
+          className="flex-1"
+      >
+    <View className="flex-1 justify-center px-6 gap-4 bg-white/10">
       <View className="gap-2">
-        <Text className="text-2xl font-semibold">Create account</Text>
-        <Text className="text-gray-500">Sign up to get started</Text>
+        <Text className="text-2xl font-semibold text-gray-100">Create account</Text>
+        <Text className="text-gray-100">Sign up to get started</Text>
       </View>
 
-      <View className="gap-3">
+      <View className=" gap-3">
         <View className="gap-2">
-          <Text className="text-gray-700">First name</Text>
+          <Text className="text-gray-100">First name</Text>
           <TextInput
             className="border border-gray-300 rounded px-3 py-2"
             autoCapitalize="words"
             value={firstName}
             onChangeText={setFirstName}
             placeholder="Jane"
+            placeholderTextColor="rgba(255,255,255,0.6)"
           />
         </View>
         <View className="gap-2">
-          <Text className="text-gray-700">Last name</Text>
+          <Text className="text-gray-100">Last name</Text>
           <TextInput
             className="border border-gray-300 rounded px-3 py-2"
             autoCapitalize="words"
             value={lastName}
             onChangeText={setLastName}
             placeholder="Doe"
+            placeholderTextColor="rgba(255,255,255,0.6)"
           />
         </View>
         <View className="gap-2">
-          <Text className="text-gray-700">Email</Text>
+          <Text className="text-gray-100">Email</Text>
           <TextInput
             className="border border-gray-300 rounded px-3 py-2"
             autoCapitalize="none"
@@ -81,16 +89,18 @@ export default function SignUp() {
             value={email}
             onChangeText={setEmail}
             placeholder="you@example.com"
+            placeholderTextColor="rgba(255,255,255,0.6)"
           />
         </View>
         <View className="gap-2">
-          <Text className="text-gray-700">Password</Text>
+          <Text className="text-gray-100">Password</Text>
           <TextInput
             className="border border-gray-300 rounded px-3 py-2"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
             placeholder="********"
+            placeholderTextColor="rgba(255,255,255,0.6)"
           />
         </View>
       </View>
@@ -104,9 +114,10 @@ export default function SignUp() {
       </Pressable>
 
       <View className="flex-row justify-center gap-2">
-        <Text className="text-gray-600">Already have an account?</Text>
+        <Text className="text-gray-100">Already have an account?</Text>
         <Link href="/(auth)/sign-in" className="text-blue-600 font-semibold">Sign in</Link>
       </View>
     </View>
+      </ImageBackground>
   );
 }
