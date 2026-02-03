@@ -3,6 +3,7 @@ import { Link, Redirect } from 'expo-router';
 import { View, Text, TextInput, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { ImageBackground } from 'react-native';
+import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
 
 export default function SignUp() {
   const { signUp, user, initializing } = useAuth();
@@ -59,31 +60,69 @@ export default function SignUp() {
 
       <View className=" gap-3">
         <View className="gap-2">
+
           <Text className="text-gray-100">First name</Text>
+          <LiquidGlassView
+              effect="regular"
+              interactive
+              tintColor="rgba(173,216,230,0.25)"
+              style={{
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+              }}
+          >
+
           <TextInput
-            className="border border-gray-300 rounded px-3 py-2"
+            className="text-white"
             autoCapitalize="words"
             value={firstName}
             onChangeText={setFirstName}
             placeholder="Jane"
             placeholderTextColor="rgba(255,255,255,0.6)"
           />
+          </LiquidGlassView>
         </View>
+
+
         <View className="gap-2">
           <Text className="text-gray-100">Last name</Text>
+          <LiquidGlassView
+              effect="regular"
+              interactive
+              tintColor="rgba(173,216,230,0.25)"
+              style={{
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+              }}
+          >
           <TextInput
-            className="border border-gray-300 rounded px-3 py-2"
+            className="text-white"
             autoCapitalize="words"
             value={lastName}
             onChangeText={setLastName}
             placeholder="Doe"
             placeholderTextColor="rgba(255,255,255,0.6)"
           />
+          </LiquidGlassView>
         </View>
+
+
         <View className="gap-2">
           <Text className="text-gray-100">Email</Text>
+          <LiquidGlassView
+              effect="regular"
+              interactive
+              tintColor="rgba(173,216,230,0.25)"
+              style={{
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+              }}
+          >
           <TextInput
-            className="border border-gray-300 rounded px-3 py-2"
+            className="text-white"
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
@@ -91,27 +130,58 @@ export default function SignUp() {
             placeholder="you@example.com"
             placeholderTextColor="rgba(255,255,255,0.6)"
           />
+          </LiquidGlassView>
         </View>
+
+
+
         <View className="gap-2">
           <Text className="text-gray-100">Password</Text>
+          <LiquidGlassView
+              effect="regular"
+              interactive
+              tintColor="rgba(173,216,230,0.25)"
+              style={{
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+              }}
+          >
           <TextInput
-            className="border border-gray-300 rounded px-3 py-2"
+            className="text-white"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
             placeholder="********"
             placeholderTextColor="rgba(255,255,255,0.6)"
           />
+          </LiquidGlassView>
         </View>
       </View>
 
-      <Pressable
-        className="bg-blue-600 rounded-md items-center justify-center h-12"
-        onPress={handleSubmit}
-        disabled={loading}
+      <LiquidGlassView
+          style={{
+            height: 48,
+            borderRadius: 12,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          effect="regular"
+          interactive
+          tintColor="rgba(0, 122, 255, 0.35)" // iOS blue
       >
-        {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Sign up</Text>}
-      </Pressable>
+        <Pressable
+            onPress={handleSubmit}
+            disabled={loading}
+            style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+        >
+          {loading ? (
+              <ActivityIndicator />
+          ) : (
+              <Text className="text-white font-semibold">Sign in</Text>
+          )}
+        </Pressable>
+      </LiquidGlassView>
 
       <View className="flex-row justify-center gap-2">
         <Text className="text-gray-100">Already have an account?</Text>
