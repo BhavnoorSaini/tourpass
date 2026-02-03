@@ -1,4 +1,4 @@
-import Mapbox, { MapView, StyleImport, ShapeSource, LineLayer, Camera, LocationPuck} from '@rnmapbox/maps';
+import Mapbox, { MapView, Camera, LocationPuck} from '@rnmapbox/maps';
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -10,6 +10,7 @@ import {
   Platform,
   PermissionsAndroid,
 } from 'react-native';
+
 
 const accessToken = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
 if (!accessToken) {
@@ -30,7 +31,8 @@ const requestLocationPermission = async () => {
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           {
             title: 'Location Permission',
-            message: 'This app needs access to your location to show your position on the map.',
+            message:
+                'This app needs access to your location to show your position on the map.',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',
@@ -58,10 +60,9 @@ function yToPitch(y: number) {
 }
 
 export default function Map() {
-  const cameraRef = useRef<any>(null);
+  const cameraRef = useRef<Mapbox.Camera>(null);
   const [pitch, setPitch] = useState<number>(45);
-
-
+  const [followUser, setFollowUser] = useState(true);
 
   // Animated value for knob position (y from 0..SLIDER_HEIGHT)
   const knobAnim = useRef(new Animated.Value(pitchToY(pitch))).current;
@@ -71,70 +72,85 @@ export default function Map() {
   // When component mounts / when pitch changes, set initial camera pitch and sync knob
   useEffect(() => {
     requestLocationPermission();
-    cameraRef.current?.setCamera({ pitch, duration: 0 });
     knobAnim.setValue(pitchToY(pitch));
     knobYRef.current = pitchToY(pitch);
   }, [knobAnim, pitch]);
 
   // Pan responder for vertical dragging
   const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        startYRef.current = knobYRef.current;
-      },
-      onPanResponderMove: (_evt, gestureState) => {
-        const newY = Math.max(0, Math.min(SLIDER_HEIGHT, startYRef.current + gestureState.dy));
-        // update animated knob and refs
-        knobAnim.setValue(newY);
-        knobYRef.current = newY;
-        const newPitch = yToPitch(newY);
-        setPitch(newPitch);
-        // update the Camera smoothly
-        cameraRef.current?.setCamera({ pitch: newPitch, duration: 50 });
-      },
-      onPanResponderRelease: () => {
-        // nothing special for now
-      },
-    })
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          startYRef.current = knobYRef.current;
+          if (followUser) {
+            setFollowUser(false);
+          }
+        },
+        onPanResponderMove: (_evt, gestureState) => {
+          const newY = Math.max(
+              0,
+              Math.min(SLIDER_HEIGHT, startYRef.current + gestureState.dy),
+          );
+          // update animated knob and refs
+          knobAnim.setValue(newY);
+          knobYRef.current = newY;
+          const newPitch = yToPitch(newY);
+          setPitch(newPitch);
+        },
+        onPanResponderRelease: () => {
+          // nothing special for now
+        },
+      }),
   ).current;
 
   return (
-    <View style={styles.container}>
-      <MapView style={styles.map} styleURL={'mapbox://styles/mapbox/standard'}>
-        <Camera ref={cameraRef} />
-        <LocationPuck
-            puckBearingEnabled
-            puckBearing="heading"
-            pulsing={{ isEnabled: true }}
-        />
-      </MapView>
-
-      {/* Vertical slider on the right side */}
-      <View style={styles.sliderContainer} pointerEvents="box-none">
-        <View style={styles.sliderTrack}>
-          <Animated.View
-            style={[
-              styles.knob,
-              {
-                transform: [
-                  {
-                    translateY: knobAnim,
-                  },
-                ],
-              },
-            ]}
-            {...panResponder.panHandlers}
+      <View style={styles.container}>
+        <MapView
+            style={styles.map}
+            styleURL={'mapbox://styles/mapbox/standard'}
+            onPress={() => {
+              if (followUser) {
+                setFollowUser(false);
+              }
+            }}
+        >
+          <Camera
+              ref={cameraRef}
+              followUserLocation={followUser}
+              pitch={pitch}
+              followZoomLevel={11}
           />
-        </View>
+          <LocationPuck
+              puckBearingEnabled
+              puckBearing="heading"
+              pulsing={{ isEnabled: true }}
+          />
+        </MapView>
 
-        {/* Label showing current pitch */}
-        <View style={styles.pitchLabel}>
-          <Text style={styles.pitchText}>{pitch}°</Text>
+        <View style={styles.sliderContainer} pointerEvents="box-none">
+          <View style={styles.sliderTrack}>
+            <Animated.View
+                style={[
+                  styles.knob,
+                  {
+                    transform: [
+                      {
+                        translateY: knobAnim,
+                      },
+                    ],
+                  },
+                ]}
+                {...panResponder.panHandlers}
+            />
+          </View>
+
+          {/* Label showing current pitch */}
+          <View style={styles.pitchLabel}>
+            <Text style={styles.pitchText}>{pitch}°</Text>
+          </View>
         </View>
       </View>
-    </View>
   );
 }
 
