@@ -9,13 +9,6 @@ import {
   Dimensions,
 } from 'react-native';
 
-// Import the SearchBar component for the top search bar RIGHT HERE
-import SearchBar from '@/components/ui/SearchBar';
-import {
-  LiquidGlassView,
-  isLiquidGlassSupported,
-} from '@callstack/liquid-glass';
-//above end changes
 
 const accessToken = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
 if (!accessToken) {
@@ -87,20 +80,6 @@ export default function Map() {
         <Camera ref={cameraRef} />
       </MapView>
 
-      {/* Search bar at the top (started change)*/}
-      <View style={styles.searchBarContainer}>
-        <LiquidGlassView
-            //ADDED LIQUID GLASS AROUND SEARCH BAR
-            effect="regular"
-            tintColor="rgba(59,130,246,0.25)" // Tailwind blue-500-ish
-            style={[
-              styles.glassSearch,
-              !isLiquidGlassSupported && styles.glassFallback,]}>
-          <SearchBar />
-        </LiquidGlassView>
-      </View>
-      {/* end change*/}
-
 
       {/* Vertical slider on the right side */}
       <View style={styles.sliderContainer} pointerEvents="box-none">
@@ -136,24 +115,6 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  // Search bar styles (started change)
-  searchBarContainer: {
-    position: 'absolute',
-    top: 80,
-    left: 16,
-    right: 16,
-    zIndex: 10,
-  },
-  glassSearch: {
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-
-  glassFallback: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-  },
-    // end change
   sliderContainer: {
     position: 'absolute',
     right: 12,
