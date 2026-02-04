@@ -3,6 +3,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import {
   LiquidGlassView,
   isLiquidGlassSupported,
@@ -58,20 +59,20 @@ export default function Profile() {
   return (
       <View className="flex-1 items-center bg-[#0B1D3A]">
         {/* Settings button */}
-        <Pressable
-            // MADE SETTINGS BUTTON BELOW, TOP RIGHT OF SCREEN
-            className="absolute top-14 right-6 z-10"
-            onPress={() => Alert.alert("Settings", "Settings pressed")}
-        >
-          <Ionicons name="settings-outline" size={26} color="white" />
-        </Pressable>
+          <Pressable
+              className="absolute top-14 right-6 z-10"
+              onPress={() => router.push("/(settings)/page")}
+          >
+              <Ionicons name="settings-outline" size={26} color="white" />
+          </Pressable>
 
 
 
 
 
 
-        <View className="items-center mt-20">
+
+          <View className="items-center mt-20">
           {/* Avatar wrapper */}
           <View className="relative">
             <Image
