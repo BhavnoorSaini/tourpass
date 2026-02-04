@@ -13,6 +13,7 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses location to show your position on the map."
       }
+      "bundleIdentifier": "com.chrissot88.tourpass-app"
     },
     "android": {
       "adaptiveIcon": {
@@ -45,7 +46,8 @@
           }
         }
       ],
-      "@rnmapbox/maps"
+      "@rnmapbox/maps",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
