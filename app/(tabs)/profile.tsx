@@ -139,33 +139,43 @@ export default function Profile() {
         </LiquidGlassView>
 
 
+          <Pressable
+              onPress={() => router.push("/(become-guide)/intro_screen")}
+              className="mt-4 w-[90%]"
+          >
+              <LiquidGlassView
+                  effect="regular"
+                  tintColor="rgba(88,28,135,0.75)"// purple glass
+                  style={[
+                      {
+                          borderRadius: 20,
+                          paddingHorizontal: 24,
+                          paddingVertical: 20,
+                      },
+                      !isLiquidGlassSupported && {
+                          backgroundColor: "rgba(99,102,241,0.85)",
+                      },
+                  ]}
+              >
+                  <View className="flex-row items-center justify-between">
+                      <View>
+                          <Text className="text-white text-lg font-semibold">
+                              Become a Tour Guide
+                          </Text>
+                          <Text className="text-white/80 text-sm mt-1">
+                              Share your city with others
+                          </Text>
+                      </View>
+
+                      <Text className="text-white text-xl">→</Text>
+                  </View>
+              </LiquidGlassView>
+          </Pressable>
 
 
 
 
-        <Pressable
-            onPress={() => {
-              // later: router.push("/become-guide")
-            }}
-            className="mt-4 w-[90%] bg-indigo-500/90 rounded-2xl px-6 py-5">
 
-          <View className="flex-row items-center justify-between">
-            <View>
-              <Text className="text-white text-lg font-semibold">
-                Become a Tour Guide
-              </Text>
-              <Text className="text-white/80 text-sm mt-1">
-                Share your city with others
-              </Text>
-            </View>
-
-            <Text className="text-white text-xl">→</Text>
-          </View>
-
-
-
-
-        </Pressable>
         <View className="mt-6 w-[90%] gap-3">
           {/* Payments */}
           <Pressable>
