@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useRouter, Href } from 'expo-router';
 import {
   LiquidGlassView,
   isLiquidGlassSupported,
@@ -62,7 +61,7 @@ export default function Profile() {
         {/* Settings button */}
           <Pressable
               className="absolute top-14 right-6 z-10"
-              onPress={() => router.push(('/settings' as Href))}
+              onPress={() => router.push("/(settings)/page")}
           >
               <Ionicons name="settings-outline" size={26} color="white" />
           </Pressable>
