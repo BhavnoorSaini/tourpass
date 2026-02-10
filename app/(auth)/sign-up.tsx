@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, Redirect, useRouter } from 'expo-router';
-import { View, Text, TextInput, Pressable, ActivityIndicator, Alert, ImageBackground } from 'react-native';
+import { View, Text, ActivityIndicator, Alert, ImageBackground } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
-import { LiquidGlassView } from '@callstack/liquid-glass';
+import { AuthInput } from '@/components/auth/AuthInput';
+import { AuthButton } from '@/components/auth/AuthButton';
 
 export default function SignUp() {
     const { signUp, user, initializing } = useAuth();
-    const router = useRouter(); // Helper for navigation
+    const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [firstName, setFirstName] = useState('');
@@ -21,7 +22,6 @@ export default function SignUp() {
         );
     }
 
-    // If user is already authenticated, direct them to home
     if (user) {
         return <Redirect href="/(tabs)/home" />;
     }
@@ -39,13 +39,10 @@ export default function SignUp() {
         setLoading(true);
         try {
             await signUp(trimmedEmail, password, trimmedFirst, trimmedLast);
-
             Alert.alert(
                 'Check your inbox',
                 'Verify your email to complete sign up.',
-                [
-                    { text: "OK", onPress: () => router.replace('/(auth)/sign-in') }
-                ]
+                [{ text: "OK", onPress: () => router.replace('/(auth)/sign-in') }]
             );
         } catch (err: any) {
             Alert.alert('Sign up failed', err.message ?? 'Unknown error');
@@ -67,102 +64,45 @@ export default function SignUp() {
                 </View>
 
                 <View className="gap-3">
-                    <View className="gap-2">
-                        <Text className="text-gray-100">First name</Text>
-                        <LiquidGlassView
-                            effect="regular"
-                            interactive
-                            tintColor="rgba(173,216,230,0.25)"
-                            style={{ borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, height: 50, justifyContent: 'center' }}
-                        >
-                            <TextInput
-                                className="text-white"
-                                autoCapitalize="words"
-                                value={firstName}
-                                onChangeText={setFirstName}
-                                placeholder="Jane"
-                                placeholderTextColor="rgba(255,255,255,0.6)"
-                            />
-                        </LiquidGlassView>
-                    </View>
+                    <AuthInput
+                        label="First name"
+                        value={firstName}
+                        onChangeText={setFirstName}
+                        placeholder="Jane"
+                        autoCapitalize="words"
+                    />
 
-                    <View className="gap-2">
-                        <Text className="text-gray-100">Last name</Text>
-                        <LiquidGlassView
-                            effect="regular"
-                            interactive
-                            tintColor="rgba(173,216,230,0.25)"
-                            style={{ borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, height: 50, justifyContent: 'center' }}
-                        >
-                            <TextInput
-                                className="text-white"
-                                autoCapitalize="words"
-                                value={lastName}
-                                onChangeText={setLastName}
-                                placeholder="Doe"
-                                placeholderTextColor="rgba(255,255,255,0.6)"
-                            />
-                        </LiquidGlassView>
-                    </View>
+                    <AuthInput
+                        label="Last name"
+                        value={lastName}
+                        onChangeText={setLastName}
+                        placeholder="Doe"
+                        autoCapitalize="words"
+                    />
 
-                    <View className="gap-2">
-                        <Text className="text-gray-100">Email</Text>
-                        <LiquidGlassView
-                            effect="regular"
-                            interactive
-                            tintColor="rgba(173,216,230,0.25)"
-                            style={{ borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, height: 50, justifyContent: 'center' }}
-                        >
-                            <TextInput
-                                className="text-white"
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                                value={email}
-                                onChangeText={setEmail}
-                                placeholder="you@example.com"
-                                placeholderTextColor="rgba(255,255,255,0.6)"
-                            />
-                        </LiquidGlassView>
-                    </View>
+                    <AuthInput
+                        label="Email"
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="you@example.com"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                    />
 
-                    <View className="gap-2">
-                        <Text className="text-gray-100">Password</Text>
-                        <LiquidGlassView
-                            effect="regular"
-                            interactive
-                            tintColor="rgba(173,216,230,0.25)"
-                            style={{ borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, height: 50, justifyContent: 'center' }}
-                        >
-                            <TextInput
-                                className="text-white"
-                                secureTextEntry
-                                value={password}
-                                onChangeText={setPassword}
-                                placeholder="********"
-                                placeholderTextColor="rgba(255,255,255,0.6)"
-                            />
-                        </LiquidGlassView>
-                    </View>
+                    <AuthInput
+                        label="Password"
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="********"
+                        secureTextEntry
+                    />
                 </View>
 
-                <LiquidGlassView
-                    style={{ height: 48, borderRadius: 12, overflow: 'hidden', marginTop: 10 }}
-                    effect="regular"
-                    interactive
-                    tintColor="rgba(0, 122, 255, 0.5)"
-                >
-                    <Pressable
-                        onPress={handleSubmit}
-                        disabled={loading}
-                        style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <Text className="text-white font-semibold text-lg">Sign up</Text>
-                        )}
-                    </Pressable>
-                </LiquidGlassView>
+                <AuthButton
+                    title="Sign up"
+                    onPress={handleSubmit}
+                    loading={loading}
+                />
 
                 <View className="flex-row justify-center gap-2 mt-4">
                     <Text className="text-gray-100">Already have an account?</Text>
