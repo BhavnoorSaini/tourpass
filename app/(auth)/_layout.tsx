@@ -1,31 +1,15 @@
-import { Tabs } from "expo-router";
+import { Stack } from "expo-router";
 
 export default function AuthLayout() {
-
     return (
-        <Tabs
+        <Stack
             screenOptions={{
                 headerShown: false,
-                tabBarStyle: { display: 'none' },
-                tabBarButton: () => null,
+                gestureEnabled: false,
             }}
         >
-            <Tabs.Screen
-                name="sign-in"
-                options={{
-                    title: "Sign In",
-                    tabBarLabel: "Sign In",
-                }}
-            />
-            <Tabs.Screen
-                name="sign-up"
-                options={{
-                    title: "Sign Up",
-                    tabBarLabel: "Sign Up",
-                }}
-            />
-        </Tabs>
+            <Stack.Screen name="sign-in" options={{ title: "Sign In" }} />
+            <Stack.Screen name="sign-up" options={{ title: "Sign Up" }} />
+        </Stack>
     );
 }
-
-
