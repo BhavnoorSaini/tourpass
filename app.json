@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app uses location to show your position on the map."
-      }
+      },
+      "bundleIdentifier": "com.bhavnoor.tourpass-app"
     },
     "android": {
       "adaptiveIcon": {
