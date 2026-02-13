@@ -1,5 +1,4 @@
-import { Pressable, Text, ActivityIndicator } from 'react-native';
-import { LiquidGlassView } from '@callstack/liquid-glass';
+import {Pressable, Text, ActivityIndicator, View} from 'react-native';
 
 interface AuthButtonProps {
     title: string;
@@ -9,16 +8,14 @@ interface AuthButtonProps {
 
 export function AuthButton({ title, onPress, loading }: AuthButtonProps) {
     return (
-        <LiquidGlassView
+        <View
             style={{
                 height: 48,
                 borderRadius: 12,
                 overflow: 'hidden',
                 marginTop: 10,
+                backgroundColor: '#007AFF',
             }}
-            effect="regular"
-            interactive
-            tintColor="rgba(0, 122, 255, 0.5)"
         >
             <Pressable
                 onPress={onPress}
@@ -36,6 +33,6 @@ export function AuthButton({ title, onPress, loading }: AuthButtonProps) {
                     <Text className="text-white font-semibold text-lg">{title}</Text>
                 )}
             </Pressable>
-        </LiquidGlassView>
+        </View>
     );
 }
