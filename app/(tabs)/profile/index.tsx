@@ -4,10 +4,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router"; // router is imported here
-import {
-    LiquidGlassView,
-    isLiquidGlassSupported,
-} from "@callstack/liquid-glass";
 
 interface ProfileRow {
     first_name: string | null;
@@ -97,21 +93,15 @@ export default function Index() {
                 <Text className="text-white/70 mt-1">{user.email}</Text>
             </View>
 
-            <LiquidGlassView
-                effect="regular"
-                tintColor="rgba(10, 20, 110, 0.35)"
-                style={[
-                    {
-                        marginTop: 24,
-                        borderRadius: 20,
-                        paddingHorizontal: 24,
-                        paddingVertical: 16,
-                        width: "90%",
-                    },
-                    !isLiquidGlassSupported && {
-                        backgroundColor: "rgba(255,255,255,0.12)",
-                    },
-                ]}
+            <View
+                style={{
+                    marginTop: 24,
+                    borderRadius: 20,
+                    paddingHorizontal: 24,
+                    paddingVertical: 16,
+                    width: "90%",
+                    backgroundColor: "rgba(255,255,255,0.12)",
+                }}
             >
                 <View className="flex-row justify-between items-center">
                     <View className="items-center flex-1">
@@ -126,25 +116,22 @@ export default function Index() {
                         <Text className="text-white/70 text-sm">Cities Visited</Text>
                     </View>
                 </View>
-            </LiquidGlassView>
+            </View>
+
 
             <Pressable
                 onPress={() => router.push("/profile/become-guide")}
                 className="mt-4 w-[90%]"
             >
-                <LiquidGlassView
-                    effect="regular"
-                    tintColor="rgba(88,28,135,0.75)"
-                    style={[
-                        {
-                            borderRadius: 20,
-                            paddingHorizontal: 24,
-                            paddingVertical: 20,
-                        },
-                        !isLiquidGlassSupported && {
-                            backgroundColor: "rgba(99,102,241,0.85)",
-                        },
-                    ]}
+                <View
+                    style={{
+                        marginTop: 24,
+                        borderRadius: 20,
+                        paddingHorizontal: 24,
+                        paddingVertical: 20,
+                        width: "100%",
+                        backgroundColor: "rgba(88,28,135,0.75)",
+                    }}
                 >
                     <View className="flex-row items-center justify-between">
                         <View>
@@ -158,26 +145,25 @@ export default function Index() {
 
                         <Text className="text-white text-xl">→</Text>
                     </View>
-                </LiquidGlassView>
+                </View>
             </Pressable>
 
             <View className="mt-6 w-[90%] gap-3">
 
+
+
+
                 {/* === PAYMENTS BUTTON === */}
                 <Pressable onPress={() => router.push("/profile/payments")}>
-                    <LiquidGlassView
-                        effect="regular"
-                        tintColor="rgba(255,255,255,0.25)"
-                        style={[
-                            {
-                                borderRadius: 20,
-                                paddingHorizontal: 20,
-                                paddingVertical: 16,
-                            },
-                            !isLiquidGlassSupported && {
-                                backgroundColor: "rgba(255,255,255,0.12)",
-                            },
-                        ]}
+                    <View
+                        style={{
+                            marginTop: 24,
+                            borderRadius: 20,
+                            paddingHorizontal: 20,
+                            paddingVertical: 16,
+                            width: "100%",
+                            backgroundColor: "rgba(255,255,255,0.25)",
+                        }}
                     >
                         <View className="flex-row items-center justify-between">
                             <View className="flex-row items-center gap-4">
@@ -188,24 +174,20 @@ export default function Index() {
                             </View>
                             <Text className="text-white/50 text-lg">›</Text>
                         </View>
-                    </LiquidGlassView>
+                    </View>
                 </Pressable>
 
                 {/* PREFERENCES BUTTON */}
                 <Pressable onPress={() => router.push("/profile/preferences")}>
-                    <LiquidGlassView
-                        effect="regular"
-                        tintColor="rgba(255,255,255,0.25)"
-                        style={[
-                            {
-                                borderRadius: 20,
-                                paddingHorizontal: 20,
-                                paddingVertical: 16,
-                            },
-                            !isLiquidGlassSupported && {
-                                backgroundColor: "rgba(255,255,255,0.12)",
-                            },
-                        ]}
+                    <View
+                        style={{
+                            marginTop: 1,
+                            borderRadius: 20,
+                            paddingHorizontal: 20,
+                            paddingVertical: 16,
+                            width: "100%",
+                            backgroundColor: "rgba(255,255,255,0.25)",
+                        }}
                     >
                         <View className="flex-row items-center justify-between">
                             <View className="flex-row items-center gap-4">
@@ -216,24 +198,20 @@ export default function Index() {
                             </View>
                             <Text className="text-white/50 text-lg">›</Text>
                         </View>
-                    </LiquidGlassView>
+                    </View>
                 </Pressable>
 
                 {/* HELP CENTER BUTTON */}
                 <Pressable onPress={() => router.push("/profile/help-center")}>
-                    <LiquidGlassView
-                        effect="regular"
-                        tintColor="rgba(255,255,255,0.25)"
-                        style={[
-                            {
-                                borderRadius: 20,
-                                paddingHorizontal: 20,
-                                paddingVertical: 16,
-                            },
-                            !isLiquidGlassSupported && {
-                                backgroundColor: "rgba(255,255,255,0.12)",
-                            },
-                        ]}
+                    <View
+                        style={{
+                            marginTop: 1,
+                            borderRadius: 20,
+                            paddingHorizontal: 20,
+                            paddingVertical: 16,
+                            width: "100%",
+                            backgroundColor: "rgba(255,255,255,0.25)",
+                        }}
                     >
                         <View className="flex-row items-center justify-between">
                             <View className="flex-row items-center gap-4">
@@ -244,7 +222,7 @@ export default function Index() {
                             </View>
                             <Text className="text-white/50 text-lg">›</Text>
                         </View>
-                    </LiquidGlassView>
+                    </View>
                 </Pressable>
 
             </View>
@@ -260,7 +238,7 @@ export default function Index() {
             </View>
 
             {/* Logout button */}
-            <View className="items-center mb-10">
+            <View className="items-center mt-4 mb-10">
                 <Pressable
                     className="bg-red-600 px-8 py-3 rounded-xl"
                     onPress={handleLogout}
