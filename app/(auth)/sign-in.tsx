@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Redirect } from 'expo-router';
-import { View, Text, ActivityIndicator, Alert, ImageBackground } from 'react-native';
+import { ScrollView, View, Text, ActivityIndicator, Alert, ImageBackground } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { AuthInput } from '@/components/auth/AuthInput';
 import { AuthButton } from '@/components/auth/AuthButton';
@@ -44,6 +44,10 @@ export default function SignIn() {
             resizeMode="cover"
             className="flex-1"
         >
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1 }}
+                keyboardShouldPersistTaps="handled"
+            >
             <View className="flex-1 justify-end px-6 pb-12 gap-4 bg-black/20">
                 <View className="gap-2">
                     <Text className="text-2xl font-semibold text-white">Welcome back</Text>
@@ -80,6 +84,7 @@ export default function SignIn() {
                     <Link href="/(auth)/sign-up" className="text-blue-400 font-bold">Sign up</Link>
                 </View>
             </View>
+            </ScrollView>
         </ImageBackground>
     );
 }
