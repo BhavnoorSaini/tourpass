@@ -53,7 +53,7 @@ export default function SignUp() {
 
     return (
         <ImageBackground
-            source={require('@/assets/images/tourpassbackgroundsignup.png')}
+            source={require('@/assets/images/NEW-BACKGROUND.png')}
             resizeMode="cover"
             className="flex-1"
         >
@@ -61,7 +61,7 @@ export default function SignUp() {
                 contentContainerStyle={{ flexGrow: 1 }}
                 keyboardShouldPersistTaps="handled"
                 >
-            <View className="flex-1 justify-center px-6 gap-4 bg-black/30">
+            <View className="flex-1 justify-center px-6 gap-4 bg-black/10 pt-64">
                 <View className="gap-2">
                     <Text className="text-2xl font-semibold text-white">Create account</Text>
                     <Text className="text-gray-200">Sign up to get started</Text>
@@ -110,7 +110,7 @@ export default function SignUp() {
 
                 <View className="flex-row justify-center gap-2 mt-4">
                     <Text className="text-gray-100">Already have an account?</Text>
-                    <Link href="/(auth)/sign-in" className="text-blue-400 font-bold">Sign in</Link>
+                    <Link href="/(auth)/sign-in" className="text-purple-500 font-bold">Sign in</Link>
                 </View>
             </View>
             </ScrollView>

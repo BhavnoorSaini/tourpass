@@ -10,7 +10,17 @@ export default function TabsLayout() {
     if (!user) return <Redirect href="/(auth)/sign-in" />;
 
     return (
-        <Tabs screenOptions={{ tabBarShowLabel: false, headerShown: false }}>
+        <Tabs screenOptions={{
+            tabBarShowLabel: false,
+            headerShown: false,
+            //added some color to the tab bar
+            tabBarStyle: {
+                backgroundColor: '#132A4F',
+                borderTopColor: 'transparent',
+            },
+            tabBarActiveTintColor: '#FFFFFF',
+            tabBarInactiveTintColor: '#A0AEC0',
+        }}>
             {/* Home */}
             <Tabs.Screen
                 name="home/index"
