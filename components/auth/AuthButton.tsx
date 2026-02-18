@@ -14,7 +14,7 @@ export function AuthButton({ title, onPress, loading }: AuthButtonProps) {
                 borderRadius: 12,
                 overflow: 'hidden',
                 marginTop: 10,
-                backgroundColor: '#007AFF',
+                backgroundColor: '#4B0082',
             }}
         >
             <Pressable
