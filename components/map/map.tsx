@@ -1,4 +1,4 @@
-import Mapbox, { MapView, Camera, LocationPuck} from '@rnmapbox/maps';
+import Mapbox, {MapView, Camera, LocationPuck, StyleImport} from '@rnmapbox/maps';
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -69,14 +69,12 @@ export default function Map() {
   const knobYRef = useRef<number>(pitchToY(pitch)); // numeric current y
   const startYRef = useRef<number>(0);
 
-  // When component mounts / when pitch changes, set initial camera pitch and sync knob
   useEffect(() => {
     requestLocationPermission();
     knobAnim.setValue(pitchToY(pitch));
     knobYRef.current = pitchToY(pitch);
   }, [knobAnim, pitch]);
 
-  // Pan responder for vertical dragging
   const panResponder = useRef(
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
@@ -92,17 +90,17 @@ export default function Map() {
               0,
               Math.min(SLIDER_HEIGHT, startYRef.current + gestureState.dy),
           );
-          // update animated knob and refs
           knobAnim.setValue(newY);
           knobYRef.current = newY;
           const newPitch = yToPitch(newY);
           setPitch(newPitch);
         },
-        onPanResponderRelease: () => {
-          // nothing special for now
-        },
+        onPanResponderRelease: () => {},
       }),
   ).current;
+
+  // Night preset for Mapbox Standard style
+  const lightPreset = 'night';
 
   return (
       <View style={styles.container}>
@@ -120,6 +118,13 @@ export default function Map() {
               followUserLocation={followUser}
               pitch={pitch}
               followZoomLevel={11}
+          />
+          <StyleImport
+              id="basemap"
+              existing
+              config={{
+                lightPreset: lightPreset,
+              }}
           />
           <LocationPuck
               puckBearingEnabled
@@ -144,8 +149,6 @@ export default function Map() {
                 {...panResponder.panHandlers}
             />
           </View>
-
-          {/* Label showing current pitch */}
           <View style={styles.pitchLabel}>
             <Text style={styles.pitchText}>{pitch}°</Text>
           </View>
@@ -153,6 +156,7 @@ export default function Map() {
       </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
