@@ -40,7 +40,7 @@ export default function SignIn() {
 
     return (
         <ImageBackground
-            source={require('@/assets/images/NEW-BACKGROUND.png')}
+            source={require('@/assets/images/NEWBACKGROUNDCHANGE.png')}
             resizeMode="cover"
             className="flex-1"
         >
@@ -48,7 +48,7 @@ export default function SignIn() {
                 contentContainerStyle={{ flexGrow: 1 }}
                 keyboardShouldPersistTaps="handled"
             >
-            <View className="flex-1 justify-end px-6 pb-44 gap-4 bg-black/10">
+            <View className="flex-1 justify-end px-6 pb-56 gap-4 bg-black/10">
                 <View className="gap-2">
                     <Text className="text-2xl font-semibold text-white">Welcome back</Text>
                     <Text className="text-gray-300">Sign in to continue</Text>

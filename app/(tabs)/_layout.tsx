@@ -15,11 +15,26 @@ export default function TabsLayout() {
             headerShown: false,
             //added some color to the tab bar
             tabBarStyle: {
-                backgroundColor: '#132A4F',
-                borderTopColor: 'transparent',
+                position: 'absolute',
+                bottom: 20,
+                elevation: 0,
+                marginHorizontal: 10, //using marginal to move the bar in from the edges of the screen,
+                //using left and right would cause the bar to stretch across the entire screen, not nice
+                height: 58,
+                backgroundColor: '#320e4f',
+                borderRadius: 16,
+
+                borderTopWidth: 0,
+                //adding a bit of shadow to the bar to make it look like its atucally flaoting
+                shadowColor: '#000',
+                shadowOpacity: 0.3,
             },
             tabBarActiveTintColor: '#FFFFFF',
             tabBarInactiveTintColor: '#A0AEC0',
+            //moving the icons in the tab bar a bit down
+            tabBarItemStyle: {
+                padding: 6,
+            },
         }}>
             {/* Home */}
             <Tabs.Screen
