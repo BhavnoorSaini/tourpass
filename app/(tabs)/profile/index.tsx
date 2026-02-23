@@ -238,7 +238,7 @@ export default function Index() {
             </View>
 
             {/* Logout button */}
-            <View className="items-center mt-4 mb-10">
+            <View className="items-center mt-4 mb-52">
                 <Pressable
                     className="bg-red-600 px-8 py-3 rounded-xl"
                     onPress={handleLogout}

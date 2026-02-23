@@ -53,7 +53,7 @@ export default function SignUp() {
 
     return (
         <ImageBackground
-            source={require('@/assets/images/NEW-BACKGROUND.png')}
+            source={require('@/assets/images/NEWBACKGROUNDCHANGE.png')}
             resizeMode="cover"
             className="flex-1"
         >
@@ -61,7 +61,7 @@ export default function SignUp() {
                 contentContainerStyle={{ flexGrow: 1 }}
                 keyboardShouldPersistTaps="handled"
                 >
-            <View className="flex-1 justify-center px-6 gap-4 bg-black/10 pt-64">
+            <View className="flex-1 justify-center px-6 gap-4 bg-black/10 pt-32">
                 <View className="gap-2">
                     <Text className="text-2xl font-semibold text-white">Create account</Text>
                     <Text className="text-gray-200">Sign up to get started</Text>
