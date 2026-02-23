@@ -1,4 +1,4 @@
-import Mapbox, {MapView, Camera, LocationPuck, StyleImport} from '@rnmapbox/maps';
+import Mapbox, { MapView, Camera, LocationPuck, StyleImport } from '@rnmapbox/maps';
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -10,7 +10,7 @@ import {
   Platform,
   PermissionsAndroid,
 } from 'react-native';
-
+import { usePreferences } from '../../contexts/PreferencesContext';
 
 const accessToken = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
 if (!accessToken) {
@@ -19,10 +19,10 @@ if (!accessToken) {
 Mapbox.setAccessToken(accessToken);
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SLIDER_HEIGHT = 220; // px of the vertical slider track
+const SLIDER_HEIGHT = 220;
 const SLIDER_WIDTH = 44;
 const MIN_PITCH = 0;
-const MAX_PITCH = 90; // sane max for Mapbox mobile
+const MAX_PITCH = 85;
 
 const requestLocationPermission = async () => {
   if (Platform.OS === 'android') {
@@ -31,8 +31,7 @@ const requestLocationPermission = async () => {
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           {
             title: 'Location Permission',
-            message:
-                'This app needs access to your location to show your position on the map.',
+            message: 'This app needs access to your location.',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',
@@ -48,25 +47,25 @@ const requestLocationPermission = async () => {
 };
 
 function pitchToY(pitch: number) {
-  // convert pitch to a y position (0..SLIDER_HEIGHT) where 0 is top (max pitch) and SLIDER_HEIGHT is bottom (min pitch)
   const ratio = (pitch - MIN_PITCH) / (MAX_PITCH - MIN_PITCH);
-  return SLIDER_HEIGHT - ratio * SLIDER_HEIGHT; // invert so top = max pitch
+  return SLIDER_HEIGHT - ratio * SLIDER_HEIGHT;
 }
 function yToPitch(y: number) {
   const clamped = Math.max(0, Math.min(SLIDER_HEIGHT, y));
-  const ratio = (SLIDER_HEIGHT - clamped) / SLIDER_HEIGHT; // inverse of pitchToY
+  const ratio = (SLIDER_HEIGHT - clamped) / SLIDER_HEIGHT;
   const pitch = MIN_PITCH + ratio * (MAX_PITCH - MIN_PITCH);
-  return Math.round(pitch * 10) / 10; // round to 0.1
+  return Math.round(pitch * 10) / 10;
 }
 
 export default function Map() {
+  const { mapStyle, lightPreset, is3DEnabled } = usePreferences();
+
   const cameraRef = useRef<Mapbox.Camera>(null);
   const [pitch, setPitch] = useState<number>(45);
   const [followUser, setFollowUser] = useState(true);
 
-  // Animated value for knob position (y from 0..SLIDER_HEIGHT)
   const knobAnim = useRef(new Animated.Value(pitchToY(pitch))).current;
-  const knobYRef = useRef<number>(pitchToY(pitch)); // numeric current y
+  const knobYRef = useRef<number>(pitchToY(pitch));
   const startYRef = useRef<number>(0);
 
   useEffect(() => {
@@ -99,14 +98,11 @@ export default function Map() {
       }),
   ).current;
 
-  // Night preset for Mapbox Standard style
-  const lightPreset = 'night';
-
   return (
       <View style={styles.container}>
         <MapView
             style={styles.map}
-            styleURL={'mapbox://styles/mapbox/standard'}
+            styleURL={mapStyle}
             onPress={() => {
               if (followUser) {
                 setFollowUser(false);
@@ -117,15 +113,22 @@ export default function Map() {
               ref={cameraRef}
               followUserLocation={followUser}
               pitch={pitch}
-              followZoomLevel={11}
+              followZoomLevel={15}
           />
-          <StyleImport
-              id="basemap"
-              existing
-              config={{
-                lightPreset: lightPreset,
-              }}
-          />
+
+          {/* Mapbox Standard Settings (Handles both Lighting and 3D!) */}
+          {mapStyle.includes('standard') && (
+              <StyleImport
+                  id="basemap"
+                  existing
+                  config={{
+                    lightPreset: lightPreset as any,
+                    // @ts-ignore
+                    show3dObjects: is3DEnabled,
+                  }}
+              />
+          )}
+
           <LocationPuck
               puckBearingEnabled
               puckBearing="heading"
@@ -157,7 +160,6 @@ export default function Map() {
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -168,7 +170,7 @@ const styles = StyleSheet.create({
   sliderContainer: {
     position: 'absolute',
     right: 12,
-    top: (SCREEN_HEIGHT - SLIDER_HEIGHT) / 2, // center vertically
+    top: (SCREEN_HEIGHT - SLIDER_HEIGHT) / 2,
     height: SLIDER_HEIGHT + 24,
     width: SLIDER_WIDTH,
     alignItems: 'center',
