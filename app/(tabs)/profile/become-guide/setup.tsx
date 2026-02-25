@@ -1,10 +1,31 @@
 import { View, Text, Pressable, TextInput } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { supabase } from "@/lib/supabase"; //getting into connecting backend with frontend
 
 const onUploadPress = () => {
     // TODO: backend hookup
 };
+//LOGIC FOR SUBMITTING THE APPLICATION
+const handleSubmit = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { error } = await supabase
+        .from("profiles")
+        .update({
+            application_status: "pending",
+        })
+        .eq("id", user?.id);
+
+    if (error) {
+        console.log("Error submitting:", error);
+        return;
+    }
+
+    // WE WILL ONLY go to success page after backend works
+    router.push("/profile/become-guide/setup_completed");
+};
+//cool
 
 export default function GuideSetup() {
     return (
@@ -62,12 +83,10 @@ export default function GuideSetup() {
 
             <View className="mt-auto mb-8">
                 <Pressable
-                    onPress={() => {
-                        router.push("/profile/become-guide/setup_completed")
-                    }}
+                    onPress={handleSubmit} //replaced router.push("/profile/become-guide/setup_completed")
                     className="bg-blue-500 py-4 rounded-2xl items-center"
                 >
-                    <Text className="text-white text-lg font-semibold">Continue →</Text>
+                    <Text className="text-white text-lg font-semibold">Submit →</Text>
                 </Pressable>
             </View>
         </View>
