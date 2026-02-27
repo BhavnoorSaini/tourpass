@@ -46,7 +46,7 @@ export default function Index() {
 
     return (
         <LinearGradient
-            colors={["#0B1D3A", "#1E3A8A", "#4C1D95"]}
+            colors={['#0F172A', '#020617', '#000000']}
             style={{ flex: 1 }}
         >
             <View className="flex-1 items-center">
