@@ -1,9 +1,12 @@
-import { Text, View, Pressable, Alert, ActivityIndicator, Image } from "react-native";
+import { Text, View, Pressable, Alert, Image } from "react-native";
 import { useAuth } from "@/providers/AuthProvider";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router"; // router is imported here
+import { LinearGradient } from "expo-linear-gradient";
+
+
 
 interface ProfileRow {
     first_name: string | null;
@@ -11,7 +14,7 @@ interface ProfileRow {
 }
 
 export default function Index() {
-    const { user, signOut } = useAuth();
+    const { user } = useAuth();
     const [profile, setProfile] = useState<ProfileRow | null>(null);
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [profileError, setProfileError] = useState<string | null>(null);
@@ -40,20 +43,13 @@ export default function Index() {
         fetchProfile();
     }, [user]);
 
-    const handleLogout = async () => {
-        try {
-            await signOut();
-        } catch (err: any) {
-            Alert.alert("Logout failed", err.message ?? "Unknown error");
-        }
-    };
-
-    if (!user) {
-        return null;
-    }
 
     return (
-        <View className="flex-1 items-center bg-[#0B1D3A]">
+        <LinearGradient
+            colors={["#0B1D3A", "#1E3A8A", "#4C1D95"]}
+            style={{ flex: 1 }}
+        >
+            <View className="flex-1 items-center">
             {/* Settings button */}
             <Pressable
                 className="absolute top-14 right-6 z-10"
@@ -89,8 +85,6 @@ export default function Index() {
                         .filter(Boolean)
                         .join(" ") || "Unknown User"}
                 </Text>
-
-                <Text className="text-white/70 mt-1">{user.email}</Text>
             </View>
 
             <View
@@ -117,6 +111,8 @@ export default function Index() {
                     </View>
                 </View>
             </View>
+
+
 
 
             <Pressable
@@ -148,106 +144,101 @@ export default function Index() {
                 </View>
             </Pressable>
 
+
+
+
+
+
+
+
             <View className="mt-6 w-[90%] gap-3">
-
-
-
-
                 {/* === PAYMENTS BUTTON === */}
-                <Pressable onPress={() => router.push("/profile/payments")}>
+                <Pressable
+                    onPress={() => router.push("/profile/payments")}
+                    className="w-full"
+                >
                     <View
+                        className="flex-row items-center justify-between px-4 py-4 rounded-2xl"
                         style={{
-                            marginTop: 24,
-                            borderRadius: 20,
-                            paddingHorizontal: 20,
-                            paddingVertical: 16,
-                            width: "100%",
-                            backgroundColor: "rgba(255,255,255,0.25)",
+                            backgroundColor: "rgba(255,255,255,0.12)",
                         }}
                     >
-                        <View className="flex-row items-center justify-between">
-                            <View className="flex-row items-center gap-4">
-                                <Text className="text-xl">💳</Text>
-                                <Text className="text-white text-base font-medium">
-                                    Payments
-                                </Text>
+                        <View className="flex-row items-center gap-3">
+                            <View className="bg-white/15 p-2 rounded-xl">
+                                <Text className="text-lg">💳</Text>
                             </View>
-                            <Text className="text-white/50 text-lg">›</Text>
+                            <Text className="text-white text-base font-medium">
+                                Payments
+                            </Text>
                         </View>
+
+                        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
                     </View>
                 </Pressable>
+
+
 
                 {/* PREFERENCES BUTTON */}
-                <Pressable onPress={() => router.push("/profile/preferences")}>
+                <Pressable
+                    onPress={() => router.push("/profile/preferences")}
+                    className="w-full"
+                >
                     <View
+                        className="flex-row items-center justify-between px-4 py-4 rounded-2xl"
                         style={{
-                            marginTop: 1,
-                            borderRadius: 20,
-                            paddingHorizontal: 20,
-                            paddingVertical: 16,
-                            width: "100%",
-                            backgroundColor: "rgba(255,255,255,0.25)",
+                            backgroundColor: "rgba(255,255,255,0.12)",
                         }}
                     >
-                        <View className="flex-row items-center justify-between">
-                            <View className="flex-row items-center gap-4">
-                                <Text className="text-xl">⚙️</Text>
-                                <Text className="text-white text-base font-medium">
-                                    Preferences
-                                </Text>
+                        <View className="flex-row items-center gap-3">
+                            <View className="bg-white/15 p-2 rounded-xl">
+                                <Text className="text-lg">⚙️</Text>
                             </View>
-                            <Text className="text-white/50 text-lg">›</Text>
+                            <Text className="text-white text-base font-medium">
+                                Preferences
+                            </Text>
                         </View>
+
+                        <Ionicons
+                            name="chevron-forward"
+                            size={18}
+                            color="rgba(255,255,255,0.6)"
+                        />
                     </View>
                 </Pressable>
+
+
 
                 {/* HELP CENTER BUTTON */}
-                <Pressable onPress={() => router.push("/profile/help-center")}>
+                <Pressable
+                    onPress={() => router.push("/profile/help-center")}
+                    className="w-full"
+                >
                     <View
+                        className="flex-row items-center justify-between px-4 py-4 rounded-2xl"
                         style={{
-                            marginTop: 1,
-                            borderRadius: 20,
-                            paddingHorizontal: 20,
-                            paddingVertical: 16,
-                            width: "100%",
-                            backgroundColor: "rgba(255,255,255,0.25)",
+                            backgroundColor: "rgba(255,255,255,0.12)",
                         }}
                     >
-                        <View className="flex-row items-center justify-between">
-                            <View className="flex-row items-center gap-4">
-                                <Text className="text-xl">❓</Text>
-                                <Text className="text-white text-base font-medium">
-                                    Help Center
-                                </Text>
+                        <View className="flex-row items-center gap-3">
+                            <View className="bg-white/15 p-2 rounded-xl">
+                                <Text className="text-lg">❓</Text>
                             </View>
-                            <Text className="text-white/50 text-lg">›</Text>
+                            <Text className="text-white text-base font-medium">
+                                Help Center
+                            </Text>
                         </View>
+
+                        <Ionicons
+                            name="chevron-forward"
+                            size={18}
+                            color="rgba(255,255,255,0.6)"
+                        />
                     </View>
                 </Pressable>
 
-            </View>
 
-            {/* Middle spacer */}
-            <View className="flex-1 items-center justify-center">
-                {loadingProfile && <ActivityIndicator color="#fff" />}
-                {profileError && (
-                    <Text className="text-red-400 text-center px-6">
-                        Failed to load profile: {profileError}
-                    </Text>
-                )}
             </View>
-
-            {/* Logout button */}
-            <View className="items-center mt-4 mb-52">
-                <Pressable
-                    className="bg-red-600 px-8 py-3 rounded-xl"
-                    onPress={handleLogout}
-                >
-                    <Text className="text-white font-semibold text-base">
-                        Log out
-                    </Text>
-                </Pressable>
             </View>
-        </View>
+        </LinearGradient>
     );
 }
