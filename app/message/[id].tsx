@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
-import { IconSymbol } from '@/components/ui/icon-symbol'; // Reusing your existing icon component
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function ChatRoomScreen() {
     const { id: tourRequestId } = useLocalSearchParams<{ id: string }>();
@@ -23,7 +23,7 @@ export default function ChatRoomScreen() {
                 .from('messages')
                 .select('*')
                 .eq('tour_request_id', tourRequestId)
-                .order('created_at', { ascending: false }); // Fetch descending for inverted FlatList
+                .order('created_at', { ascending: false });
 
             if (data) setMessages(data);
         };
