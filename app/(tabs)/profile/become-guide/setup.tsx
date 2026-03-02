@@ -1,7 +1,8 @@
 import { View, Text, Pressable, TextInput } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { supabase } from "@/lib/supabase"; //getting into connecting backend with frontend
+import { supabase } from "@/lib/supabase";
+import {LinearGradient} from "expo-linear-gradient"; //getting into connecting backend with frontend
 
 const onUploadPress = () => {
     // TODO: backend hookup
@@ -29,7 +30,10 @@ const handleSubmit = async () => {
 
 export default function GuideSetup() {
     return (
-        <View className="flex-1 bg-[#0B1D3A] px-6">
+        <LinearGradient
+            colors={['#0F172A', '#020617', '#000000']}
+            style={{ flex: 1, paddingHorizontal: 24, paddingTop: 20 }}
+        >
             <Pressable
                 onPress={() => router.back()}
                 className="absolute top-14 left-6 z-10"
@@ -89,6 +93,6 @@ export default function GuideSetup() {
                     <Text className="text-white text-lg font-semibold">Submit →</Text>
                 </Pressable>
             </View>
-        </View>
+        </LinearGradient>
     );
 }

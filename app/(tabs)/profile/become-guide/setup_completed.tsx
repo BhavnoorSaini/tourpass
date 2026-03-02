@@ -1,10 +1,14 @@
 import { View, Text, Pressable } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import {LinearGradient} from "expo-linear-gradient";
 
 export default function SetupCompleted() {
     return (
-        <View className="flex-1 bg-[#0B1D3A] px-6">
+        <LinearGradient
+            colors={['#0F172A', '#020617', '#000000']}
+            style={{ flex: 1 }}
+        >
             <View className="flex-1 items-center justify-center">
                 <View className="relative mb-10">
                     <View className="w-48 h-36 bg-white/10 rounded-2xl rotate-[-8deg] items-center justify-center">
@@ -31,17 +35,17 @@ export default function SetupCompleted() {
                 </Text>
             </View>
 
-            <View className="mb-10">
+            <View className="mt-auto mb-8">
                 {/* Routes back to the main Profile screen */}
                 <Pressable
                     onPress={() => router.dismissTo('/profile')}
-                    className="bg-blue-500 py-4 rounded-2xl items-center"
+                    className="bg-blue-500 py-4 rounded-2xl items-center mx-4"
                 >
                     <Text className="text-white text-lg font-semibold">
                         Take me home
                     </Text>
                 </Pressable>
             </View>
-        </View>
+        </LinearGradient>
     );
 }
