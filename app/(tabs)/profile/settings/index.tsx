@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 // FIX: Adjusted path to reach the 'lib' folder (Go up 4 levels)
 import { supabase } from '../../../../lib/supabase';
+import {LinearGradient} from "expo-linear-gradient";
 
 // --- Interfaces ---
 interface SettingsItemProps {
@@ -59,7 +60,10 @@ const EditProfileModal = ({ visible, onClose }: ModalProps) => {
 
     return (
         <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-            <View className="flex-1 bg-[#111827]">
+            <LinearGradient
+                colors={['#0F172A', '#020617', '#000000']}
+                style={{ flex: 1 }}
+            >
                 {/* Header */}
                 <View className="flex-row items-center justify-between px-4 pt-14 pb-4 bg-[#1F2937] border-b border-gray-700">
                     <TouchableOpacity onPress={onClose} className="p-2">
@@ -91,7 +95,7 @@ const EditProfileModal = ({ visible, onClose }: ModalProps) => {
                         className="bg-[#1F2937] text-white p-4 rounded-xl border border-gray-700 mb-4"
                     />
                 </View>
-            </View>
+            </LinearGradient>
         </Modal>
     );
 };
@@ -100,7 +104,10 @@ const EditProfileModal = ({ visible, onClose }: ModalProps) => {
 const ChangePasswordModal = ({ visible, onClose }: ModalProps) => {
     return (
         <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-            <View className="flex-1 bg-[#111827]">
+            <LinearGradient
+                colors={['#0F172A', '#020617', '#000000']}
+                style={{ flex: 1 }}
+            >
                 {/* Header */}
                 <View className="flex-row items-center justify-between px-4 pt-14 pb-4 bg-[#1F2937] border-b border-gray-700">
                     <TouchableOpacity onPress={onClose} className="p-2">
@@ -136,7 +143,7 @@ const ChangePasswordModal = ({ visible, onClose }: ModalProps) => {
                         className="bg-[#1F2937] text-white p-4 rounded-b-xl border border-gray-700"
                     />
                 </View>
-            </View>
+            </LinearGradient>
         </Modal>
     );
 };
@@ -188,8 +195,11 @@ export default function Settings() {
     }
 
     return (
+        <LinearGradient
+            colors={['#0F172A', '#020617', '#000000']}
+            style={{ flex: 1 }}
+        >
         <ScrollView
-            className="flex-1 bg-[#111827]"
             contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: 16, paddingTop: 60 }}
         >
             {/* --- Modals --- */}
@@ -287,5 +297,6 @@ export default function Settings() {
             </Text>
 
         </ScrollView>
+        </LinearGradient>
     );
 }
