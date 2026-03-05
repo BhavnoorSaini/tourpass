@@ -38,7 +38,7 @@ export default function TabsLayout() {
         }}>
             {/* Home */}
             <Tabs.Screen
-                name="home/index"
+                name="home"
                 options={{
                     title: 'Home',
                     tabBarIcon: ({ color, focused }) => (
@@ -49,7 +49,7 @@ export default function TabsLayout() {
 
             {/* Feed Tab */}
             <Tabs.Screen
-                name="message/index"
+                name="feed"
                 options={{
                     title: 'Feed',
                     tabBarIcon: ({ color, focused }) => (
