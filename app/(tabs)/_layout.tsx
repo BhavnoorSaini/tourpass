@@ -21,7 +21,7 @@ export default function TabsLayout() {
                 marginHorizontal: 10, //using marginal to move the bar in from the edges of the screen,
                 //using left and right would cause the bar to stretch across the entire screen, not nice
                 height: 58,
-                backgroundColor: '#320e4f',
+                backgroundColor: '#0B1D3A',
                 borderRadius: 16,
 
                 borderTopWidth: 0,

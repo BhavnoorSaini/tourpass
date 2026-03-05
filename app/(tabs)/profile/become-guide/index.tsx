@@ -1,12 +1,16 @@
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import {LinearGradient} from "expo-linear-gradient";
 
 export default function GuideIntro() {
     const router = useRouter();
 
     return (
-        <View className="flex-1 bg-[#0B1D3A] px-6">
+        <LinearGradient
+            colors={['#0F172A', '#020617', '#000000']}
+            style={{ flex: 1, paddingHorizontal: 24, paddingTop: 40 }}
+        >
             {/* Back button */}
             <Pressable
                 onPress={() => router.back()}
@@ -69,10 +73,11 @@ export default function GuideIntro() {
                         Start Application →
                     </Text>
                 </Pressable>
+
                 <Text className="text-white/50 text-center mt-3 text-sm">
                     Takes less than 5 minutes to get started
                 </Text>
             </View>
-        </View>
+        </LinearGradient>
     );
 }

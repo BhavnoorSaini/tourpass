@@ -126,7 +126,7 @@ export default function Index() {
                         paddingHorizontal: 24,
                         paddingVertical: 20,
                         width: "100%",
-                        backgroundColor: "rgba(88,28,135,0.75)",
+                        backgroundColor: '#12305C',
                     }}
                 >
                     <View className="flex-row items-center justify-between">
@@ -164,7 +164,7 @@ export default function Index() {
                         }}
                     >
                         <View className="flex-row items-center gap-3">
-                            <View className="bg-white/15 p-2 rounded-xl">
+                            <View className="bg-white/10 p-2 rounded-xl">
                                 <Text className="text-lg">💳</Text>
                             </View>
                             <Text className="text-white text-base font-medium">
@@ -190,7 +190,7 @@ export default function Index() {
                         }}
                     >
                         <View className="flex-row items-center gap-3">
-                            <View className="bg-white/15 p-2 rounded-xl">
+                            <View className="bg-white/10 p-2 rounded-xl">
                                 <Text className="text-lg">⚙️</Text>
                             </View>
                             <Text className="text-white text-base font-medium">
@@ -220,7 +220,7 @@ export default function Index() {
                         }}
                     >
                         <View className="flex-row items-center gap-3">
-                            <View className="bg-white/15 p-2 rounded-xl">
+                            <View className="bg-white/10 p-2 rounded-xl">
                                 <Text className="text-lg">❓</Text>
                             </View>
                             <Text className="text-white text-base font-medium">
