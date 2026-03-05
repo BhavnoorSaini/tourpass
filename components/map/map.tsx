@@ -1,15 +1,6 @@
 import Mapbox, { MapView, Camera, LocationPuck, StyleImport } from '@rnmapbox/maps';
 import { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  Text,
-  Animated,
-  PanResponder,
-  Dimensions,
-  Platform,
-  PermissionsAndroid,
-} from 'react-native';
+import { View, StyleSheet, Text, Animated, PanResponder, Dimensions, Platform, PermissionsAndroid,} from 'react-native';
 import { usePreferences } from '../../contexts/PreferencesContext';
 
 const accessToken = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
