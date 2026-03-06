@@ -21,7 +21,7 @@ export default function TabsLayout() {
                 marginHorizontal: 10, //using marginal to move the bar in from the edges of the screen,
                 //using left and right would cause the bar to stretch across the entire screen, not nice
                 height: 58,
-                backgroundColor: '#0B1D3A',
+                backgroundColor: '#320e4f',
                 borderRadius: 16,
 
                 borderTopWidth: 0,
@@ -49,9 +49,9 @@ export default function TabsLayout() {
 
             {/* Feed Tab */}
             <Tabs.Screen
-                name="feed"
+                name="message"
                 options={{
-                    title: 'Feed',
+                    title: 'Messages',
                     tabBarIcon: ({ color, focused }) => (
                         <IconSymbol
                             size={focused ? 26 : 24}
