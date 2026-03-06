@@ -11,6 +11,8 @@ import { LinearGradient } from "expo-linear-gradient";
 interface ProfileRow {
     first_name: string | null;
     last_name: string | null;
+    is_guide: boolean | null; //check if user is a guide or not
+    application_status: string | null;
 }
 
 export default function Index() {
@@ -18,6 +20,8 @@ export default function Index() {
     const [profile, setProfile] = useState<ProfileRow | null>(null);
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [profileError, setProfileError] = useState<string | null>(null);
+    const isGuide = profile?.is_guide;
+    const applicationStatus = profile?.application_status;
 
     useEffect(() => {
         if (!user) return;
@@ -27,7 +31,7 @@ export default function Index() {
             setProfileError(null);
             const { data, error } = await supabase
                 .from("profiles")
-                .select("first_name, last_name")
+                .select("first_name, last_name, is_guide, application_status")
                 .eq("id", user.id)
                 .single();
 
@@ -42,6 +46,7 @@ export default function Index() {
 
         fetchProfile();
     }, [user]);
+
 
 
     return (
@@ -113,36 +118,134 @@ export default function Index() {
             </View>
 
 
-
-
-            <Pressable
-                onPress={() => router.push("/profile/become-guide")}
-                className="mt-4 w-[90%]"
-            >
-                <View
-                    style={{
-                        marginTop: 24,
-                        borderRadius: 20,
-                        paddingHorizontal: 24,
-                        paddingVertical: 20,
-                        width: "100%",
-                        backgroundColor: '#12305C',
-                    }}
-                >
-                    <View className="flex-row items-center justify-between">
-                        <View>
-                            <Text className="text-white text-lg font-semibold">
-                                Become a Tour Guide
-                            </Text>
-                            <Text className="text-white/80 text-sm mt-1">
-                                Share your city with others
-                            </Text>
+                {!isGuide && applicationStatus === "none" && (
+                    <Pressable
+                        onPress={() => router.push("/profile/become-guide")}
+                        className="mt-4 w-[90%]"
+                    >
+                        <View
+                            style={{
+                                marginTop: 24,
+                                borderRadius: 20,
+                                paddingHorizontal: 24,
+                                paddingVertical: 20,
+                                width: "100%",
+                                backgroundColor: "#12305C",
+                            }}
+                        >
+                            <View className="flex-row items-center justify-between">
+                                <View>
+                                    <Text className="text-white text-lg font-semibold">
+                                        Become a Tour Guide
+                                    </Text>
+                                    <Text className="text-white/80 text-sm mt-1">
+                                        Share your city with others
+                                    </Text>
+                                </View>
+                                <Text className="text-white text-xl">→</Text>
+                            </View>
                         </View>
+                    </Pressable>
+                )}
 
-                        <Text className="text-white text-xl">→</Text>
+                {!isGuide && applicationStatus === "pending" && (
+                    <View
+                        style={{
+                            marginTop: 24,
+                            borderRadius: 20,
+                            paddingHorizontal: 24,
+                            paddingVertical: 20,
+                            width: "90%",
+                            backgroundColor: "#444",
+                        }}
+                    >
+                        <Text className="text-white text-lg font-semibold">
+                            Application Under Review
+                        </Text>
+                        <Text className="text-white/70 text-sm mt-1">
+                            We will notify you once approved.
+                        </Text>
                     </View>
-                </View>
-            </Pressable>
+                )}
+
+                {isGuide && (
+                    <Pressable
+                        onPress={() => router.push("/profile/guide-dashboard")}
+                        className="mt-4 w-[90%]"
+                    >
+                        <View
+                            style={{
+                                marginTop: 24,
+                                borderRadius: 20,
+                                paddingHorizontal: 24,
+                                paddingVertical: 20,
+                                width: "100%",
+                                backgroundColor: "#12305C",
+                            }}
+                        >
+                            <Text className="text-white text-lg font-semibold">
+                                Guide Dashboard
+                            </Text>
+                            {/* Placeholder stats GOTTA replace with real data from database LATER same goes for the guide-dashboard file */}
+                            <View className="flex-row justify-between mt-4">
+                                <View>
+                                    <Text className="text-white text-lg font-bold">$0</Text>
+                                    <Text className="text-white/70 text-sm">
+                                        Total Earnings
+                                    </Text>
+                                </View>
+
+                                <View>
+                                    <Text className="text-white text-lg font-bold">0</Text>
+                                    <Text className="text-white/70 text-sm">
+                                        Active Tours
+                                    </Text>
+                                </View>
+
+                                <View>
+                                    <Text className="text-white text-lg font-bold">0</Text>
+                                    <Text className="text-white/70 text-sm">
+                                        Completed
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </Pressable>
+                )}
+
+
+
+
+            {/*<Pressable*/}
+            {/*    onPress={() => router.push("/profile/become-guide")}*/}
+            {/*    className="mt-4 w-[90%]"*/}
+            {/*>*/}
+            {/*    <View*/}
+            {/*        style={{*/}
+            {/*            marginTop: 24,*/}
+            {/*            borderRadius: 20,*/}
+            {/*            paddingHorizontal: 24,*/}
+            {/*            paddingVertical: 20,*/}
+            {/*            width: "100%",*/}
+            {/*            backgroundColor: '#12305C',*/}
+            {/*        }}*/}
+            {/*    >*/}
+            {/*        <View className="flex-row items-center justify-between">*/}
+            {/*            <View>*/}
+            {/*                <Text className="text-white text-lg font-semibold">*/}
+            {/*                    Become a Tour Guide*/}
+            {/*                </Text>*/}
+            {/*                <Text className="text-white/80 text-sm mt-1">*/}
+            {/*                    Share your city with others*/}
+            {/*                </Text>*/}
+            {/*            </View>*/}
+
+            {/*            <Text className="text-white text-xl">→</Text>*/}
+            {/*        </View>*/}
+            {/*    </View>*/}
+            {/*</Pressable>*/}
+
+
 
 
 
