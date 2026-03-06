@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function MessageScreen() {
     const { user } = useAuth();
@@ -48,7 +49,11 @@ export default function MessageScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-[#0B1D3A]">
+        <LinearGradient
+            colors={['#0F172A', '#020617', '#000000']}
+            style={{ flex: 1 }}
+        >
+            <SafeAreaView className="flex-1">
             <View className="px-6 pt-4 pb-2 border-b border-white/10">
                 <Text className="text-2xl font-bold text-white">Messages</Text>
             </View>
@@ -83,5 +88,6 @@ export default function MessageScreen() {
                 />
             )}
         </SafeAreaView>
+        </LinearGradient>
     );
 }
