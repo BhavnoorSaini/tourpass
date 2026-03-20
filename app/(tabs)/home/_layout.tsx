@@ -5,6 +5,12 @@ export default function HomeLayout() {
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen
+                name="create-route"
+                options={{
+                    animation: 'slide_from_right',
+                }}
+            />
+            <Stack.Screen
                 name="tour"
                 options={{
                     animation: 'slide_from_bottom',
@@ -13,4 +19,3 @@ export default function HomeLayout() {
         </Stack>
     );
 }
-

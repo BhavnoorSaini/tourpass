@@ -1,20 +1,70 @@
+import { useEffect, useLayoutEffect, useMemo } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { MapboxNavigationView } from '@badatgil/expo-mapbox-navigation';
-import { useLayoutEffect } from 'react';
+import { useRoutes } from '@/contexts/RoutesContext';
 
-// Cloud Gate (The Bean) → Navy Pier → Willis Tower
-const COORDINATES = [
-  { latitude: 41.8827, longitude: -87.6233 },  // Cloud Gate, Chicago
-  { latitude: 41.8917, longitude: -87.6086 },  // Navy Pier
-  { latitude: 41.8789, longitude: -87.6359 },  // Willis Tower
-];
+interface NavigationCoordinate {
+  latitude: number;
+  longitude: number;
+}
 
-export default function ChicagoTourNavigation() {
+function parseCoordinates(serializedCoordinates?: string) {
+  if (!serializedCoordinates) {
+    return [] as NavigationCoordinate[];
+  }
+
+  try {
+    const parsed = JSON.parse(serializedCoordinates);
+    if (!Array.isArray(parsed)) {
+      return [] as NavigationCoordinate[];
+    }
+
+    return parsed.filter(
+      (item) =>
+        typeof item?.latitude === 'number' &&
+        typeof item?.longitude === 'number',
+    ) as NavigationCoordinate[];
+  } catch {
+    return [] as NavigationCoordinate[];
+  }
+}
+
+export default function TourNavigation() {
   const router = useRouter();
   const navigation = useNavigation();
+  const params = useLocalSearchParams();
+  const { getRouteById } = useRoutes();
 
-  // Hide the tab bar when this screen is focused
+  const routeIdParam = typeof params.routeId === 'string' ? params.routeId : undefined;
+  const coordinatesParam =
+    typeof params.coordinates === 'string' ? params.coordinates : undefined;
+  const titleParam = typeof params.title === 'string' ? params.title : undefined;
+
+  const selectedRoute = routeIdParam ? getRouteById(routeIdParam) : undefined;
+
+  const fallbackCoordinates = useMemo(
+    () => parseCoordinates(coordinatesParam),
+    [coordinatesParam],
+  );
+
+  const coordinates: NavigationCoordinate[] = useMemo(() => {
+    if (selectedRoute) {
+      return selectedRoute.stops.map((stop) => ({
+        latitude: stop.coordinate[1],
+        longitude: stop.coordinate[0],
+      }));
+    }
+
+    return fallbackCoordinates;
+  }, [fallbackCoordinates, selectedRoute]);
+
+  const routeTitle =
+    selectedRoute?.title ||
+    (titleParam && titleParam.trim().length > 0
+      ? titleParam
+      : 'Custom route');
+
   useLayoutEffect(() => {
     const parent = navigation.getParent();
     parent?.setOptions({
@@ -39,12 +89,28 @@ export default function ChicagoTourNavigation() {
     };
   }, [navigation]);
 
+  useEffect(() => {
+    if (coordinates.length >= 2) {
+      return;
+    }
+
+    Alert.alert(
+      'Route Missing',
+      'No valid route coordinates were found for navigation.',
+      [{ text: 'OK', onPress: () => router.back() }],
+    );
+  }, [coordinates.length, router]);
+
+  if (coordinates.length < 2) {
+    return <View style={styles.container} />;
+  }
+
   return (
     <View style={styles.container}>
       <MapboxNavigationView
         style={styles.navigation}
-        coordinates={COORDINATES}
-        waypointIndices={[0, 1, 2]}
+        coordinates={coordinates}
+        waypointIndices={coordinates.map((_, index) => index)}
         routeProfile="walking"
         onCancelNavigation={() => {
           router.back();
@@ -54,14 +120,10 @@ export default function ChicagoTourNavigation() {
         }}
         onFinalDestinationArrival={() => {
           Alert.alert(
-            'Tour Complete!',
-            'You have arrived at Willis Tower — the final stop on your Chicago tour!',
-            [{ text: 'OK', onPress: () => router.back() }]
+            'Navigation Complete',
+            `You have arrived at the final stop for ${routeTitle}.`,
+            [{ text: 'OK', onPress: () => router.back() }],
           );
-        }}
-        onRouteProgressChanged={(event) => {
-          // You can use this to show distance/time remaining
-          // console.log('Progress:', event.nativeEvent);
         }}
         onRouteFailedToLoad={(event) => {
           console.error('Route failed to load:', event.nativeEvent?.errorMessage);
@@ -80,4 +142,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
