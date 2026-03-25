@@ -1,59 +1,70 @@
-import { Alert, StyleSheet, View } from "react-native";
+import { View, Text, TextInput, Pressable } from "react-native";
 import { useState } from "react";
-import {
-  ProfileActionButton,
-  ProfileInputField,
-  ProfileScaffold,
-  ProfileScrollView,
-  ProfileSectionBlock,
-} from "@/components/profile/ProfileScaffold";
+import {LinearGradient} from "expo-linear-gradient";
 
 export default function ReportBugScreen() {
-  const [details, setDetails] = useState("");
+    const [details, setDetails] = useState("");
 
-  const handleSubmit = () => {
-    Alert.alert("Bug report", "Bug reporting can be connected here.");
-    setDetails("");
-  };
+    return (
+        <LinearGradient
+            colors={['#0F172A', '#020617', '#000000']}
+            style={{ flex: 1 }}
+        >
+        <View style={{ padding: 20 }}>
+            <Text
+                style={{
+                    color: "#fff",
+                    fontSize: 18,
+                    fontWeight: "600",
+                    marginBottom: 12,
+                }}
+            >
+                Report a Bug
+            </Text>
 
-  return (
-    <ProfileScaffold
-      title="Report a Bug"
-      subtitle="Share the issue so we can reproduce and fix it."
-    >
-      {(contentWidth) => (
-        <ProfileScrollView contentWidth={contentWidth}>
-          <ProfileSectionBlock title="Details">
-            <View style={styles.form}>
-              <ProfileInputField
-                label="What happened?"
-                placeholder="Describe the bug, steps, and what you expected."
+            <Text
+                style={{
+                    color: "#94A3B8",
+                    marginBottom: 8,
+                }}
+            >
+                Tell us what went wrong so we can fix it.
+            </Text>
+
+            <TextInput
+                placeholder="What happened?"
+                placeholderTextColor="#94A3B8"
                 value={details}
                 onChangeText={setDetails}
                 multiline
-              />
-            </View>
-          </ProfileSectionBlock>
+                style={{
+                    backgroundColor: "#1C2A44",
+                    color: "#fff",
+                    borderRadius: 14,
+                    padding: 16,
+                    minHeight: 160,
+                    textAlignVertical: "top",
+                }}
+            />
 
-          <ProfileActionButton
-            label="Submit report"
-            icon="bug-outline"
-            onPress={handleSubmit}
-            style={styles.button}
-          />
-        </ProfileScrollView>
-      )}
-    </ProfileScaffold>
-  );
+            <Pressable
+                style={{
+                    backgroundColor: "#DC2626",
+                    borderRadius: 14,
+                    padding: 16,
+                    marginTop: 16,
+                    alignItems: "center",
+                }}
+                onPress={() => {
+                    // later: gotta submit bug
+                    setDetails("");
+                }}
+            >
+                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                    Submit Bug Report
+                </Text>
+            </Pressable>
+        </View>
+        </LinearGradient>
+    );
 }
-
-const styles = StyleSheet.create({
-  form: {
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-  },
-  button: {
-    marginTop: 22,
-    alignSelf: "flex-start",
-  },
-});
