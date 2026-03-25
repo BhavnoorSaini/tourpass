@@ -26,6 +26,8 @@ import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { useRoutes } from '@/contexts/RoutesContext';
+import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
 import {
   createSearchSessionToken,
   fetchDirectionsOptions,
@@ -70,6 +72,7 @@ export default function CreateRouteScreen() {
   const router = useRouter();
   const { mapStyle, lightPreset, is3DEnabled, isDarkMapMode, isStandardMapStyle } = usePreferences();
   const { addRoute } = useRoutes();
+  const { user } = useAuth();
 
   const sessionTokenRef = useRef(createSearchSessionToken());
   const cameraRef = useRef<Mapbox.Camera>(null);
@@ -375,7 +378,7 @@ export default function CreateRouteScreen() {
     Keyboard.dismiss();
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     const trimmedTitle = title.trim();
 
     if (!trimmedTitle) {
@@ -393,28 +396,48 @@ export default function CreateRouteScreen() {
       return;
     }
 
+    if (!user) {
+      Alert.alert('Not Signed In', 'You must be signed in to publish a route.');
+      return;
+    }
+
     setPublishing(true);
 
-    const createdAt = new Date().toISOString();
-    const publishPayload = {
-      title: trimmedTitle,
+    const selectedRoute = routeOptions[selectedRouteIndex];
+    const routeData = {
       stops: stops.map((stop) => ({
         name: stop.name,
         fullAddress: stop.fullAddress,
         coordinate: stop.coordinate,
         mapboxId: stop.mapboxId,
       })),
+      polyline: selectedRoute.coordinates,
+      durationSeconds: selectedRoute.durationSeconds,
+      distanceMeters: selectedRoute.distanceMeters,
     };
 
+    const { data, error } = await supabase.from('routes').insert({
+      creator_id: user.id,
+      title: trimmedTitle,
+      city: stops[0].fullAddress,
+      route_data: routeData,
+      is_public: true,
+    }).select('id, created_at').single();
+
+    if (error) {
+      setPublishing(false);
+      Alert.alert('Publish Failed', error.message);
+      return;
+    }
+
     const newRoute: StoredRoute = {
-      id: `route-${Date.now()}`,
+      id: data.id,
       title: trimmedTitle,
       stops,
-      createdAt,
+      createdAt: data.created_at,
     };
 
     addRoute(newRoute);
-    console.log(`Route payload for Supabase:\n${JSON.stringify(publishPayload, null, 2)}`);
     setPublishing(false);
     router.back();
   };
