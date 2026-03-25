@@ -55,7 +55,7 @@ module.exports = {
       [
         "@rnmapbox/maps",
         {
-          RNMapboxMapsVersion: "11.13.4",
+          RNMapboxMapsVersion: "11.11.0",
           RNMapboxMapsDownloadToken: process.env.RNMAPBOX_MAPS_DOWNLOAD_TOKEN,
         }
       ],
@@ -63,7 +63,7 @@ module.exports = {
         "@badatgil/expo-mapbox-navigation",
         {
           accessToken: process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN,
-          mapboxMapsVersion: "11.13.4"
+          mapboxMapsVersion: "11.11.0"
         }
       ],
       [
