@@ -4,9 +4,6 @@ import {SafeAreaProvider} from "react-native-safe-area-context";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { PreferencesProvider } from "../contexts/PreferencesContext";
 import { RoutesProvider } from "@/contexts/RoutesContext";
-import { LogBox } from "react-native";
-
-LogBox.ignoreLogs(['Mapbox [error] MapLoad error Failed to load tile']);
 
 export default function RootLayout() {
     return (

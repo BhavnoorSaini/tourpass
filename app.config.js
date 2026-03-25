@@ -1,6 +1,3 @@
-// 1. Force the config to read your local environment variables
-require('dotenv').config({ path: '.env.local' });
-
 module.exports = {
   expo: {
     name: "tourpass",

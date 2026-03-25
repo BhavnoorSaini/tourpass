@@ -1,9 +1,13 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
+type MapStyleOption = 'standard' | 'satellite' | 'hybrid';
+
 interface PreferencesContextType {
     mapStyle: string;
     lightPreset: 'day' | 'night' | 'dusk' | 'dawn';
-    changeMapStyle: (style: 'standard' | 'satellite' | 'hybrid') => void;
+    isStandardMapStyle: boolean;
+    isDarkMapMode: boolean;
+    changeMapStyle: (style: MapStyleOption) => void;
     changeLightPreset: (preset: 'day' | 'night' | 'dusk' | 'dawn') => void;
     is3DEnabled: boolean;
     setIs3DEnabled: (enabled: boolean) => void;
@@ -19,8 +23,10 @@ export const PreferencesProvider = ({ children }: PreferencesProviderProps) => {
     const [mapStyle, setMapStyle] = useState<string>('mapbox://styles/mapbox/standard');
     const [lightPreset, setLightPreset] = useState<'day' | 'night' | 'dusk' | 'dawn'>('day');
     const [is3DEnabled, setIs3DEnabled] = useState<boolean>(false);
+    const isStandardMapStyle = mapStyle === 'mapbox://styles/mapbox/standard';
+    const isDarkMapMode = isStandardMapStyle && (lightPreset === 'night' || lightPreset === 'dusk');
 
-    const changeMapStyle = (type: 'standard' | 'satellite' | 'hybrid') => {
+    const changeMapStyle = (type: MapStyleOption) => {
         switch (type) {
             case 'standard':
                 setMapStyle('mapbox://styles/mapbox/standard');
@@ -43,6 +49,8 @@ export const PreferencesProvider = ({ children }: PreferencesProviderProps) => {
             value={{
                 mapStyle,
                 lightPreset,
+                isStandardMapStyle,
+                isDarkMapMode,
                 changeMapStyle,
                 changeLightPreset,
                 is3DEnabled,

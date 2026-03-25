@@ -49,7 +49,7 @@ export default function TabsLayout() {
 
             {/* Feed Tab */}
             <Tabs.Screen
-                name="message"
+                name="message/index"
                 options={{
                     title: 'Messages',
                     tabBarIcon: ({ color, focused }) => (
