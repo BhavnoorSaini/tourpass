@@ -1,59 +1,61 @@
-import { Alert, StyleSheet, View } from "react-native";
+import { View, Text, TextInput, Pressable } from "react-native";
 import { useState } from "react";
-import {
-  ProfileActionButton,
-  ProfileInputField,
-  ProfileScaffold,
-  ProfileScrollView,
-  ProfileSectionBlock,
-} from "@/components/profile/ProfileScaffold";
+import {LinearGradient} from "expo-linear-gradient";
 
 export default function ContactSupportScreen() {
-  const [message, setMessage] = useState("");
+    const [message, setMessage] = useState("");
 
-  const handleSend = () => {
-    Alert.alert("Support", "Support submission can be connected here.");
-    setMessage("");
-  };
+    return (
+        <LinearGradient
+            colors={['#0F172A', '#020617', '#000000']}
+            style={{ flex: 1 }}
+        >
+        <View style={{ padding: 20 }}>
+            <Text
+                style={{
+                    color: "#fff",
+                    fontSize: 18,
+                    fontWeight: "600",
+                    marginBottom: 12,
+                }}
+            >
+                Contact Support
+            </Text>
 
-  return (
-    <ProfileScaffold
-      title="Contact Support"
-      subtitle="Send a message and we’ll follow up."
-    >
-      {(contentWidth) => (
-        <ProfileScrollView contentWidth={contentWidth}>
-          <ProfileSectionBlock title="Message">
-            <View style={styles.form}>
-              <ProfileInputField
-                label="Describe the issue"
-                placeholder="Tell us what you need help with."
+            <TextInput
+                placeholder="Describe your issue..."
+                placeholderTextColor="#94A3B8"
                 value={message}
                 onChangeText={setMessage}
                 multiline
-              />
-            </View>
-          </ProfileSectionBlock>
+                style={{
+                    backgroundColor: "#1C2A44",
+                    color: "#fff",
+                    borderRadius: 14,
+                    padding: 16,
+                    minHeight: 140,
+                    textAlignVertical: "top",
+                }}
+            />
 
-          <ProfileActionButton
-            label="Send message"
-            icon="send-outline"
-            onPress={handleSend}
-            style={styles.button}
-          />
-        </ProfileScrollView>
-      )}
-    </ProfileScaffold>
-  );
+            <Pressable
+                style={{
+                    backgroundColor: "#2563EB",
+                    borderRadius: 14,
+                    padding: 16,
+                    marginTop: 16,
+                    alignItems: "center",
+                }}
+                onPress={() => {
+                    // later: gotta send to backend
+                    setMessage("");
+                }}
+            >
+                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                    Send Message
+                </Text>
+            </Pressable>
+        </View>
+        </LinearGradient>
+    );
 }
-
-const styles = StyleSheet.create({
-  form: {
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-  },
-  button: {
-    marginTop: 22,
-    alignSelf: "flex-start",
-  },
-});

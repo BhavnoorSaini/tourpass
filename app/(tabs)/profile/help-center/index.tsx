@@ -1,52 +1,52 @@
-import { StyleSheet, View } from "react-native";
+import { View, Text, Pressable, ScrollView } from "react-native";
 import { router } from "expo-router";
-import {
-  ActionRow,
-  ProfileScaffold,
-  ProfileScrollView,
-  ProfileSectionBlock,
-} from "@/components/profile/ProfileScaffold";
+import { Ionicons } from "@expo/vector-icons";
+import {LinearGradient} from "expo-linear-gradient";
 
 export default function HelpCenter() {
-  return (
-    <ProfileScaffold
-      title="Help Center"
-      subtitle="Support, questions, and issue reporting."
-    >
-      {(contentWidth) => (
-        <ProfileScrollView contentWidth={contentWidth}>
-          <ProfileSectionBlock title="Support">
-            <ActionRow
-              icon="chatbubble-ellipses-outline"
-              label="Contact support"
-              iconTint="#BAE6FD"
-              onPress={() => router.push("/profile/help-center/contact")}
-            />
-            <View style={styles.divider} />
-            <ActionRow
-              icon="help-circle-outline"
-              label="FAQs"
-              iconTint="#C7D2FE"
-              onPress={() => router.push("/profile/help-center/faq")}
-            />
-            <View style={styles.divider} />
-            <ActionRow
-              icon="bug-outline"
-              label="Report a bug"
-              iconTint="#F4E7CF"
-              onPress={() => router.push("/profile/help-center/report_bug")}
-            />
-          </ProfileSectionBlock>
-        </ProfileScrollView>
-      )}
-    </ProfileScaffold>
-  );
-}
+    return (
+        <LinearGradient
+            colors={['#0F172A', '#020617', '#000000']}
+            style={{ flex: 1 }}
+        >
+            <ScrollView
+                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
+                showsVerticalScrollIndicator={false}
+            >
 
-const styles = StyleSheet.create({
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 72,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-  },
-});
+
+            <Text className="text-white text-3xl font-bold mt-6 mb-6">
+                Help Center
+            </Text>
+
+            {/* FAQ */}
+            <Pressable
+                onPress={() => router.push("/profile/help-center/faq")}
+                className="bg-white/10 p-4 rounded-2xl mb-4 flex-row justify-between items-center"
+            >
+                <Text className="text-white text-lg">FAQs</Text>
+                <Ionicons name="chevron-forward" size={20} color="white" />
+            </Pressable>
+
+            {/* Contact */}
+            <Pressable
+                onPress={() => router.push("/profile/help-center/contact")}
+                className="bg-white/10 p-4 rounded-2xl mb-4 flex-row justify-between items-center"
+            >
+                <Text className="text-white text-lg">Contact Support</Text>
+                <Ionicons name="chevron-forward" size={20} color="white" />
+            </Pressable>
+
+            {/* Report Bug */}
+            <Pressable
+                onPress={() => router.push("/profile/help-center/report_bug")}
+                className="bg-white/10 p-4 rounded-2xl mb-4 flex-row justify-between items-center"
+            >
+                <Text className="text-white text-lg">Report a Bug</Text>
+                <Ionicons name="chevron-forward" size={20} color="white" />
+            </Pressable>
+
+        </ScrollView>
+        </LinearGradient>
+    );
+}
