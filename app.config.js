@@ -1,6 +1,3 @@
-// 1. Force the config to read your local environment variables
-require('dotenv').config({ path: '.env.local' });
-
 module.exports = {
   expo: {
     name: "tourpass",
@@ -58,7 +55,7 @@ module.exports = {
       [
         "@rnmapbox/maps",
         {
-          RNMapboxMapsVersion: "11.11.0",
+          RNMapboxMapsVersion: "11.13.4",
           RNMapboxMapsDownloadToken: process.env.RNMAPBOX_MAPS_DOWNLOAD_TOKEN,
         }
       ],
@@ -66,7 +63,7 @@ module.exports = {
         "@badatgil/expo-mapbox-navigation",
         {
           accessToken: process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN,
-          mapboxMapsVersion: "11.11.0"
+          mapboxMapsVersion: "11.13.4"
         }
       ],
       [

@@ -1,12 +1,8 @@
 import React from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePreferences } from '../../../../contexts/PreferencesContext';
-
-interface MapTypeButtonProps {
-    label: string;
-    value: 'standard' | 'satellite' | 'hybrid';
-}
 
 interface LightPresetButtonProps {
     label: string;
@@ -15,47 +11,16 @@ interface LightPresetButtonProps {
 
 export default function PreferencesScreen() {
     const {
-        mapStyle,
-        changeMapStyle,
         lightPreset,
         changeLightPreset,
         is3DEnabled,
         setIs3DEnabled
     } = usePreferences();
 
-    const getActiveType = (url: string) => {
-        if (url.includes('satellite-streets')) return 'hybrid';
-        if (url.includes('satellite')) return 'satellite';
-        return 'standard';
-    };
-
-    const currentType = getActiveType(mapStyle);
-
-    // Create a boolean check to see if lighting should be disabled
-    const isLightingDisabled = currentType !== 'standard';
-
-    const MapTypeButton = ({ label, value }: MapTypeButtonProps) => (
-        <TouchableOpacity
-            style={[styles.segmentButton, currentType === value && styles.activeSegment]}
-            onPress={() => changeMapStyle(value)}
-        >
-            <Text style={[styles.segmentText, currentType === value && styles.activeSegmentText]}>
-                {label}
-            </Text>
-        </TouchableOpacity>
-    );
-
     const LightPresetButton = ({ label, value }: LightPresetButtonProps) => (
         <TouchableOpacity
             style={[styles.segmentButton, lightPreset === value && styles.activeSegment]}
-            onPress={() => {
-                // Only allow changes if lighting is currently active
-                if (!isLightingDisabled) {
-                    changeLightPreset(value);
-                }
-            }}
-            // Disables the tap animation when inactive
-            activeOpacity={isLightingDisabled ? 1 : 0.2}
+            onPress={() => changeLightPreset(value)}
         >
             <Text style={[styles.segmentText, lightPreset === value && styles.activeSegmentText]}>
                 {label}
@@ -78,18 +43,13 @@ export default function PreferencesScreen() {
                 <View style={styles.card}>
 
                     <Text style={styles.label}>Map Style</Text>
-                    <View style={styles.segmentContainer}>
-                        <MapTypeButton label="Standard" value="standard" />
-                        <MapTypeButton label="Satellite" value="satellite" />
-                        <MapTypeButton label="Hybrid" value="hybrid" />
-                    </View>
+                    <Text style={styles.subLabel}>TourPass uses the standard map only so 3D buildings stay available.</Text>
 
                     <View style={styles.divider} />
 
-                    {/* Apply dimming styles to the text and container when disabled */}
-                    <Text style={[styles.label, isLightingDisabled && styles.disabledSection]}>Map Lighting</Text>
-                    <Text style={[styles.subLabel, isLightingDisabled && styles.disabledSection]}>Adjusts time of day on standard map</Text>
-                    <View style={[styles.segmentContainer, isLightingDisabled && styles.disabledSection]}>
+                    <Text style={styles.label}>Map Lighting</Text>
+                    <Text style={styles.subLabel}>Adjusts time of day on the standard 3D map.</Text>
+                    <View style={styles.segmentContainer}>
                         <LightPresetButton label="Day" value="day" />
                         <LightPresetButton label="Dawn" value="dawn" />
                         <LightPresetButton label="Dusk" value="dusk" />
@@ -193,9 +153,5 @@ const styles = StyleSheet.create({
     activeSegmentText: {
         color: '#FFFFFF',
         fontWeight: '600',
-    },
-
-    disabledSection: {
-        opacity: 0.4,
     },
 });
