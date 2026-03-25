@@ -1,51 +1,89 @@
-import { View, Text, Pressable } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import {LinearGradient} from "expo-linear-gradient";
+import {
+  ProfileActionButton,
+  ProfileScaffold,
+  ProfileScrollView,
+} from "@/components/profile/ProfileScaffold";
+import { GlassPanel } from "@/components/profile/ProfilePrimitives";
 
 export default function SetupCompleted() {
-    return (
-        <LinearGradient
-            colors={['#0F172A', '#020617', '#000000']}
-            style={{ flex: 1 }}
-        >
-            <View className="flex-1 items-center justify-center">
-                <View className="relative mb-10">
-                    <View className="w-48 h-36 bg-white/10 rounded-2xl rotate-[-8deg] items-center justify-center">
-                        <View className="flex-row gap-6">
-                            <View className="w-10 h-10 rounded-full bg-orange-400/80 items-center justify-center">
-                                <Ionicons name="location-outline" size={20} color="white" />
-                            </View>
-                            <View className="w-10 h-10 rounded-full bg-teal-400/80 items-center justify-center">
-                                <Ionicons name="navigate-outline" size={20} color="white" />
-                            </View>
-                        </View>
-                    </View>
-                    <View className="absolute -top-6 -right-6 w-14 h-14 rounded-full bg-blue-500 items-center justify-center border-4 border-[#0B1D3A]">
-                        <Ionicons name="checkmark" size={28} color="white" />
-                    </View>
-                </View>
-
-                <Text className="text-white text-3xl font-bold text-center mb-4">
-                    Application Submitted!
-                </Text>
-                <Text className="text-white/70 text-center text-base leading-6 px-4">
-                    Our team is currently reviewing your profile and route.
-                    This usually takes 24–48 hours.
-                </Text>
+  return (
+    <ProfileScaffold
+      title="Submitted"
+      subtitle="Your guide application is in review."
+      onBackPress={() => router.dismissTo("/profile")}
+      backIcon="close"
+    >
+      {(contentWidth) => (
+        <ProfileScrollView contentWidth={contentWidth}>
+          <GlassPanel
+            style={styles.panel}
+            contentStyle={styles.panelContent}
+            intensity={28}
+            gradientColors={[
+              "rgba(171, 196, 255, 0.14)",
+              "rgba(255, 255, 255, 0.03)",
+            ]}
+          >
+            <View style={styles.successIcon}>
+              <Ionicons name="checkmark" size={28} color="#091220" />
             </View>
+            <Text style={styles.title}>Application received</Text>
+            <Text style={styles.note}>
+              Reviews usually take 24 to 48 hours. We&apos;ll notify you when your
+              account is ready.
+            </Text>
+          </GlassPanel>
 
-            <View className="mt-auto mb-8">
-                {/* Routes back to the main Profile screen */}
-                <Pressable
-                    onPress={() => router.dismissTo('/profile')}
-                    className="bg-blue-500 py-4 rounded-2xl items-center mx-4"
-                >
-                    <Text className="text-white text-lg font-semibold">
-                        Take me home
-                    </Text>
-                </Pressable>
-            </View>
-        </LinearGradient>
-    );
+          <ProfileActionButton
+            label="Back to profile"
+            icon="home-outline"
+            onPress={() => router.dismissTo("/profile")}
+            style={styles.button}
+          />
+        </ProfileScrollView>
+      )}
+    </ProfileScaffold>
+  );
 }
+
+const styles = StyleSheet.create({
+  panel: {
+    borderRadius: 30,
+  },
+  panelContent: {
+    alignItems: "center",
+    paddingHorizontal: 22,
+    paddingVertical: 30,
+    gap: 14,
+  },
+  successIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(244, 231, 207, 0.96)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.5)",
+  },
+  title: {
+    color: "#F8FAFC",
+    fontSize: 28,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  note: {
+    color: "#9AAABC",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    maxWidth: 380,
+  },
+  button: {
+    marginTop: 22,
+    alignSelf: "center",
+  },
+});
