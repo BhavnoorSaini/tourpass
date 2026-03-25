@@ -1,18 +1,16 @@
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { Stack } from "expo-router";
 
 export default function SettingsLayout() {
-    return (
-        <>
-            <StatusBar style="light" />
-            <Stack
-                screenOptions={{
-                    contentStyle: { backgroundColor: '#111827' },
-                    headerShown: false,
-                }}
-            >
-                <Stack.Screen name="index" />
-            </Stack>
-        </>
-    );
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: "#030712" },
+      }}
+    >
+      <Stack.Screen name="index" />
+      <Stack.Screen name="edit-profile" />
+      <Stack.Screen name="password" />
+    </Stack>
+  );
 }

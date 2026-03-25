@@ -1,55 +1,114 @@
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import {
+  ActionRow,
+  ProfileActionButton,
+  ProfileMetric,
+  ProfileScaffold,
+  ProfileScrollView,
+  ProfileSectionBlock,
+} from "@/components/profile/ProfileScaffold";
 
 export default function GuideDashboard() {
-    const router = useRouter();
+  const router = useRouter();
 
-    return (
-        <ScrollView className="flex-1 bg-black p-6">
-            {/* Section 1: Stats */}
-            <View className="bg-blue-900 rounded-2xl p-6 mb-6">
-                <Text className="text-white text-2xl font-bold mb-4">
-                    Earnings Overview
-                </Text>
+  const handlePlaceholder = (label: string) => {
+    Alert.alert(label, "This guide workflow can be connected when your dashboard data is ready.");
+  };
 
-                <View className="flex-row justify-between">
-                    <View>
-                        <Text className="text-white text-xl font-bold">$0</Text>
-                        <Text className="text-white/60">Total Earnings</Text>
-                    </View>
+  return (
+    <ProfileScaffold
+      title="Guide Dashboard"
+      subtitle="Tours, requests, and earnings at a glance."
+    >
+      {(contentWidth) => (
+        <ProfileScrollView contentWidth={contentWidth}>
+          <View style={styles.metricRow}>
+            <ProfileMetric value="$0" label="Earnings" />
+            <ProfileMetric value="0" label="Completed" />
+            <ProfileMetric value="0" label="Requests" />
+          </View>
 
-                    <View>
-                        <Text className="text-white text-xl font-bold">0</Text>
-                        <Text className="text-white/60">Completed Tours</Text>
-                    </View>
-
-                    <View>
-                        <Text className="text-white text-xl font-bold">0</Text>
-                        <Text className="text-white/60">Active Requests</Text>
-                    </View>
-                </View>
+          <ProfileSectionBlock title="Requests" style={styles.section}>
+            <View style={styles.panelBody}>
+              <Text style={styles.lead}>No pending requests</Text>
+              <Text style={styles.note}>New booking requests will appear here.</Text>
             </View>
+          </ProfileSectionBlock>
 
-            {/* Section 2: Pending Requests */}
-            <View className="bg-neutral-900 rounded-2xl p-6 mb-6">
-                <Text className="text-white text-xl font-semibold mb-4">
-                    Pending Requests
-                </Text>
+          <ProfileSectionBlock title="Manage" style={styles.section}>
+            <ActionRow
+              icon="create-outline"
+              label="Edit guide profile"
+              iconTint="#BAE6FD"
+              onPress={() => router.push("/profile/guide-profile")}
+            />
+            <View style={styles.divider} />
+            <ActionRow
+              icon="map-outline"
+              label="Create new route"
+              iconTint="#F4E7CF"
+              onPress={() => handlePlaceholder("Create new route")}
+            />
+          </ProfileSectionBlock>
 
-                <Text className="text-white/60">
-                    No pending tour requests yet.
-                </Text>
-            </View>
-
-            {/* Section 3: Create Route */}
-            <TouchableOpacity
-                //onPress={() => router.push("/profile/create-route")}
-                className="bg-blue-800 rounded-2xl p-5 items-center"
-            >
-                <Text className="text-white text-lg font-semibold">
-                    Create New Route
-                </Text>
-            </TouchableOpacity>
-        </ScrollView>
-    );
+          <View style={styles.ctaRow}>
+            <ProfileActionButton
+              label="Create route"
+              icon="add-outline"
+              onPress={() => handlePlaceholder("Create new route")}
+              style={styles.flexButton}
+            />
+            <ProfileActionButton
+              label="Guide profile"
+              icon="person-circle-outline"
+              onPress={() => router.push("/profile/guide-profile")}
+              variant="secondary"
+              style={styles.flexButton}
+            />
+          </View>
+        </ProfileScrollView>
+      )}
+    </ProfileScaffold>
+  );
 }
+
+const styles = StyleSheet.create({
+  metricRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  section: {
+    marginTop: 22,
+  },
+  panelBody: {
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 6,
+  },
+  lead: {
+    color: "#F8FAFC",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  note: {
+    color: "#9AAABC",
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 72,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+  },
+  ctaRow: {
+    marginTop: 22,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  flexButton: {
+    flex: 1,
+  },
+});

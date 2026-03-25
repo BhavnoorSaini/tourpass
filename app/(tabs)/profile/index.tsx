@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -116,48 +116,38 @@ export default function ProfileScreen() {
     };
   }, [user]);
 
-  if (!user) {
-    return null;
-  }
-
   const isGuide = Boolean(profile?.is_guide);
   const applicationStatus = profile?.application_status ?? null;
-  const firstName = user.user_metadata?.first_name ?? profile?.first_name ?? "Tour";
-  const lastName = user.user_metadata?.last_name ?? profile?.last_name ?? "Pass";
-  const displayName = [firstName, lastName].filter(Boolean).join(" ").trim();
+  const firstName = user?.user_metadata?.first_name ?? profile?.first_name ?? "Tour";
+  const lastName = user?.user_metadata?.last_name ?? profile?.last_name ?? "Pass";
+  const displayName = useMemo(
+    () => [firstName, lastName].filter(Boolean).join(" ").trim(),
+    [firstName, lastName]
+  );
   const roleLabel = isGuide ? "Guide" : "Traveler";
   const guideState = getGuideState(isGuide, applicationStatus, loadingProfile);
-  const memberSince = formatMemberSince(user.created_at);
-  const contentWidth = Math.min(width - 32, 560);
+  const memberSince = formatMemberSince(user?.created_at);
+  const contentWidth = useMemo(() => Math.min(width - 32, 548), [width]);
   const compactLayout = width < 410;
-  const avatarUri = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    displayName || "Tour Pass"
-  )}&background=0B1220&color=F8FAFC&size=256&font-size=0.38`;
+  const avatarUri = useMemo(
+    () =>
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        displayName || "Tour Pass"
+      )}&background=0B1220&color=F8FAFC&size=256&font-size=0.38`,
+    [displayName]
+  );
 
-  const handleRoute = (href: string) => {
+  const handleRoute = useCallback((href: string) => {
     void Haptics.selectionAsync();
     router.push(href as never);
-  };
+  }, [router]);
 
-  const handlePhotoPress = () => {
+  const handlePhotoPress = useCallback(() => {
     void Haptics.selectionAsync();
     Alert.alert("Profile photo", "Photo upload can be connected here.");
-  };
+  }, []);
 
-  const confirmSignOut = () => {
-    Alert.alert("Sign out", "You can sign back in anytime.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign out",
-        style: "destructive",
-        onPress: () => {
-          void handleSignOut();
-        },
-      },
-    ]);
-  };
-
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       setIsSigningOut(true);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -170,25 +160,46 @@ export default function ProfileScreen() {
     } finally {
       setIsSigningOut(false);
     }
-  };
+  }, [signOut]);
 
-  const quickAction = isGuide
-    ? {
-        label: "Dashboard",
-        icon: "grid-outline" as const,
-        route: "/profile/guide-dashboard",
-      }
-    : applicationStatus === "pending"
-      ? {
-          label: "Support",
-          icon: "help-buoy-outline" as const,
-          route: "/profile/help-center",
-        }
-      : {
-          label: "Apply",
-          icon: "sparkles-outline" as const,
-          route: "/profile/become-guide",
-        };
+  const confirmSignOut = useCallback(() => {
+    Alert.alert("Sign out", "You can sign back in anytime.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign out",
+        style: "destructive",
+        onPress: () => {
+          void handleSignOut();
+        },
+      },
+    ]);
+  }, [handleSignOut]);
+
+  const quickAction = useMemo(
+    () =>
+      isGuide
+        ? {
+            label: "Dashboard",
+            icon: "grid-outline" as const,
+            route: "/profile/guide-dashboard",
+          }
+        : applicationStatus === "pending"
+          ? {
+              label: "Support",
+              icon: "help-buoy-outline" as const,
+              route: "/profile/help-center",
+            }
+          : {
+              label: "Apply",
+              icon: "sparkles-outline" as const,
+              route: "/profile/become-guide",
+            },
+    [applicationStatus, isGuide]
+  );
+
+  if (!user) {
+    return null;
+  }
 
   const renderGuidePanel = () => {
     if (loadingProfile) {
@@ -439,13 +450,6 @@ export default function ProfileScreen() {
                   gradientColors={SURFACE_GLASS}
                 >
                   <ActionRow
-                    icon="settings-outline"
-                    label="Settings"
-                    iconTint="#C7D2FE"
-                    onPress={() => handleRoute("/profile/settings")}
-                  />
-                  <View style={styles.divider} />
-                  <ActionRow
                     icon="card-outline"
                     label="Payments"
                     iconTint="#F4E7CF"
@@ -516,14 +520,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 10,
-    paddingBottom: 136,
+    paddingTop: 12,
+    paddingBottom: 132,
   },
   content: {
     alignSelf: "center",
   },
   topBar: {
-    marginBottom: 18,
+    marginBottom: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -532,7 +536,8 @@ const styles = StyleSheet.create({
     color: "#F8FAFC",
     fontSize: 30,
     fontWeight: "800",
-    letterSpacing: 0.2,
+    lineHeight: 34,
+    letterSpacing: 0.15,
   },
   iconButton: {
     width: 44,
@@ -553,7 +558,7 @@ const styles = StyleSheet.create({
   },
   heroPanelContent: {
     padding: 22,
-    gap: 20,
+    gap: 18,
   },
   heroIdentity: {
     flexDirection: "row",
@@ -595,22 +600,23 @@ const styles = StyleSheet.create({
   },
   identityText: {
     flex: 1,
-    gap: 6,
+    gap: 5,
   },
   displayName: {
     color: "#F8FAFC",
-    fontSize: 28,
+    fontSize: 27,
     fontWeight: "800",
     lineHeight: 32,
-    letterSpacing: 0.2,
+    letterSpacing: 0.15,
   },
   emailText: {
     color: "#C7D2E0",
     fontSize: 14,
     fontWeight: "500",
+    lineHeight: 19,
   },
   metaRow: {
-    marginTop: 6,
+    marginTop: 8,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
@@ -644,7 +650,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   noticePanel: {
-    marginTop: 12,
+    marginTop: 14,
   },
   noticePanelContent: {
     minHeight: 48,
@@ -660,7 +666,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   section: {
-    marginTop: 24,
+    marginTop: 22,
   },
   sectionPanel: {
     borderRadius: 26,
@@ -678,7 +684,7 @@ const styles = StyleSheet.create({
   },
   guidePanelContent: {
     padding: 20,
-    gap: 14,
+    gap: 12,
   },
   panelHead: {
     flexDirection: "row",
@@ -689,13 +695,14 @@ const styles = StyleSheet.create({
   panelTitle: {
     flex: 1,
     color: "#F8FAFC",
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: "800",
-    letterSpacing: 0.2,
+    lineHeight: 27,
+    letterSpacing: 0.15,
   },
   panelNote: {
     color: "#A5B4C7",
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 19,
   },
   statusBadge: {

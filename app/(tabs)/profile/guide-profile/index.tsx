@@ -1,76 +1,83 @@
-import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import { useState } from "react";
-import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  ProfileActionButton,
+  ProfileInputField,
+  ProfileScaffold,
+  ProfileScrollView,
+  ProfileSectionBlock,
+} from "@/components/profile/ProfileScaffold";
 
 export default function EditGuideProfile() {
-    const [bio, setBio] = useState("");
-    const [city, setCity] = useState("");
-    const [languages, setLanguages] = useState("");
-    const [specialty, setSpecialty] = useState("");
+  const [bio, setBio] = useState("");
+  const [city, setCity] = useState("");
+  const [languages, setLanguages] = useState("");
+  const [specialty, setSpecialty] = useState("");
 
-    return (
-        <LinearGradient
-            colors={["#0F172A", "#020617", "#000000"]}
-            style={{ flex: 1 }}
-        >
-            <SafeAreaView className="flex-1">
-                <ScrollView className="px-6">
+  const handleSave = () => {
+    Alert.alert("Guide profile", "Guide profile saving can be connected here.");
+  };
 
-                    <Text className="text-white text-2xl font-bold mt-4">
-                        Edit Guide Profile
-                    </Text>
+  return (
+    <ProfileScaffold
+      title="Guide Profile"
+      subtitle="Public details guests will see before they book."
+    >
+      {(contentWidth) => (
+        <ProfileScrollView contentWidth={contentWidth}>
+          <ProfileSectionBlock title="Details">
+            <View style={styles.form}>
+              <ProfileInputField
+                label="Bio"
+                placeholder="Tell travelers what makes your tours memorable."
+                value={bio}
+                onChangeText={setBio}
+                multiline
+              />
+              <ProfileInputField
+                label="Primary city"
+                icon="location-outline"
+                placeholder="Chicago"
+                value={city}
+                onChangeText={setCity}
+              />
+              <ProfileInputField
+                label="Languages"
+                icon="globe-outline"
+                placeholder="English, Spanish"
+                value={languages}
+                onChangeText={setLanguages}
+              />
+              <ProfileInputField
+                label="Specialty"
+                icon="sparkles-outline"
+                placeholder="Food tours, architecture, hidden gems"
+                value={specialty}
+                onChangeText={setSpecialty}
+              />
+            </View>
+          </ProfileSectionBlock>
 
-                    {/* BIO */}
-                    <Text className="text-white/70 mt-6">Bio</Text>
-                    <TextInput
-                        value={bio}
-                        onChangeText={setBio}
-                        placeholder="Tell tourists about yourself..."
-                        placeholderTextColor="#9CA3AF"
-                        multiline
-                        className="bg-white/10 text-white p-4 rounded-xl mt-2"
-                    />
-
-                    {/* CITY */}
-                    <Text className="text-white/70 mt-6">City</Text>
-                    <TextInput
-                        value={city}
-                        onChangeText={setCity}
-                        placeholder="Chicago"
-                        placeholderTextColor="#9CA3AF"
-                        className="bg-white/10 text-white p-4 rounded-xl mt-2"
-                    />
-
-                    {/* LANGUAGES */}
-                    <Text className="text-white/70 mt-6">Languages</Text>
-                    <TextInput
-                        value={languages}
-                        onChangeText={setLanguages}
-                        placeholder="English, Spanish"
-                        placeholderTextColor="#9CA3AF"
-                        className="bg-white/10 text-white p-4 rounded-xl mt-2"
-                    />
-
-                    {/* SPECIALTY */}
-                    <Text className="text-white/70 mt-6">Tour Specialty</Text>
-                    <TextInput
-                        value={specialty}
-                        onChangeText={setSpecialty}
-                        placeholder="Food tours, hidden gems..."
-                        placeholderTextColor="#9CA3AF"
-                        className="bg-white/10 text-white p-4 rounded-xl mt-2"
-                    />
-
-                    {/* SAVE BUTTON */}
-                    <Pressable className="bg-indigo-600 mt-8 p-4 rounded-xl items-center">
-                        <Text className="text-white font-semibold text-lg">
-                            Save Profile
-                        </Text>
-                    </Pressable>
-
-                </ScrollView>
-            </SafeAreaView>
-        </LinearGradient>
-    );
+          <ProfileActionButton
+            label="Save profile"
+            icon="checkmark-outline"
+            onPress={handleSave}
+            style={styles.saveButton}
+          />
+        </ProfileScrollView>
+      )}
+    </ProfileScaffold>
+  );
 }
+
+const styles = StyleSheet.create({
+  form: {
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 16,
+  },
+  saveButton: {
+    marginTop: 22,
+    alignSelf: "flex-start",
+  },
+});
