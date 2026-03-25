@@ -4,6 +4,11 @@ import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePreferences } from '../../../../contexts/PreferencesContext';
 
+interface MapTypeButtonProps {
+    label: string;
+    value: 'standard' | 'satellite' | 'hybrid';
+}
+
 interface LightPresetButtonProps {
     label: string;
     value: 'day' | 'night' | 'dusk' | 'dawn';
@@ -11,16 +16,43 @@ interface LightPresetButtonProps {
 
 export default function PreferencesScreen() {
     const {
+        mapStyle,
+        changeMapStyle,
         lightPreset,
+        isStandardMapStyle,
         changeLightPreset,
         is3DEnabled,
         setIs3DEnabled
     } = usePreferences();
 
+    const getActiveType = (url: string) => {
+        if (url.includes('satellite-streets')) return 'hybrid';
+        if (url.includes('satellite')) return 'satellite';
+        return 'standard';
+    };
+
+    const currentType = getActiveType(mapStyle);
+
+    const MapTypeButton = ({ label, value }: MapTypeButtonProps) => (
+        <TouchableOpacity
+            style={[styles.segmentButton, currentType === value && styles.activeSegment]}
+            onPress={() => changeMapStyle(value)}
+        >
+            <Text style={[styles.segmentText, currentType === value && styles.activeSegmentText]}>
+                {label}
+            </Text>
+        </TouchableOpacity>
+    );
+
     const LightPresetButton = ({ label, value }: LightPresetButtonProps) => (
         <TouchableOpacity
             style={[styles.segmentButton, lightPreset === value && styles.activeSegment]}
-            onPress={() => changeLightPreset(value)}
+            onPress={() => {
+                if (isStandardMapStyle) {
+                    changeLightPreset(value);
+                }
+            }}
+            activeOpacity={isStandardMapStyle ? 0.2 : 1}
         >
             <Text style={[styles.segmentText, lightPreset === value && styles.activeSegmentText]}>
                 {label}
@@ -43,13 +75,20 @@ export default function PreferencesScreen() {
                 <View style={styles.card}>
 
                     <Text style={styles.label}>Map Style</Text>
-                    <Text style={styles.subLabel}>TourPass uses the standard map only so 3D buildings stay available.</Text>
+                    <Text style={styles.subLabel}>Choose the map look you want for browsing and route building.</Text>
+                    <View style={styles.segmentContainer}>
+                        <MapTypeButton label="Standard" value="standard" />
+                        <MapTypeButton label="Satellite" value="satellite" />
+                        <MapTypeButton label="Hybrid" value="hybrid" />
+                    </View>
 
                     <View style={styles.divider} />
 
-                    <Text style={styles.label}>Map Lighting</Text>
-                    <Text style={styles.subLabel}>Adjusts time of day on the standard 3D map.</Text>
-                    <View style={styles.segmentContainer}>
+                    <Text style={[styles.label, !isStandardMapStyle && styles.disabledSection]}>Map Lighting</Text>
+                    <Text style={[styles.subLabel, !isStandardMapStyle && styles.disabledSection]}>
+                        Available on the standard map only.
+                    </Text>
+                    <View style={[styles.segmentContainer, !isStandardMapStyle && styles.disabledSection]}>
                         <LightPresetButton label="Day" value="day" />
                         <LightPresetButton label="Dawn" value="dawn" />
                         <LightPresetButton label="Dusk" value="dusk" />
@@ -60,12 +99,15 @@ export default function PreferencesScreen() {
 
                     <View style={styles.row}>
                         <View>
-                            <Text style={styles.label}>3D Buildings</Text>
-                            <Text style={styles.subLabel}>Show height & pitch map</Text>
+                            <Text style={[styles.label, !isStandardMapStyle && styles.disabledSection]}>3D Buildings</Text>
+                            <Text style={[styles.subLabel, !isStandardMapStyle && styles.disabledSection]}>
+                                Available on the standard map only.
+                            </Text>
                         </View>
                         <Switch
                             value={is3DEnabled}
                             onValueChange={setIs3DEnabled}
+                            disabled={!isStandardMapStyle}
                             trackColor={{ false: '#263B5E', true: '#745BFF' }}
                             thumbColor={'#FFFFFF'}
                         />
@@ -153,5 +195,8 @@ const styles = StyleSheet.create({
     activeSegmentText: {
         color: '#FFFFFF',
         fontWeight: '600',
+    },
+    disabledSection: {
+        opacity: 0.4,
     },
 });

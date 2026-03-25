@@ -82,7 +82,7 @@ export default function Map({
   highlightedCoordinate = null,
   onMapPress,
 }: MapProps) {
-  const { mapStyle, lightPreset, is3DEnabled, isDarkMapMode } = usePreferences();
+  const { mapStyle, lightPreset, is3DEnabled, isDarkMapMode, isStandardMapStyle } = usePreferences();
 
   const cameraRef = useRef<Mapbox.Camera>(null);
   const [pitch, setPitch] = useState<number>(0);
@@ -215,15 +215,17 @@ export default function Map({
           followZoomLevel={15}
         />
 
-        <StyleImport
-          id="basemap"
-          existing
-          config={{
-            lightPreset: lightPreset as any,
-            // @ts-ignore
-            show3dObjects: is3DEnabled,
-          }}
-        />
+        {isStandardMapStyle ? (
+          <StyleImport
+            id="basemap"
+            existing
+            config={{
+              lightPreset: lightPreset as any,
+              // @ts-ignore
+              show3dObjects: is3DEnabled,
+            }}
+          />
+        ) : null}
 
         <LocationPuck
           puckBearingEnabled
