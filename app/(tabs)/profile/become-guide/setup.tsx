@@ -26,28 +26,27 @@ export default function GuideSetup() {
             .map((l) => l.trim())
             .filter(Boolean);
 
-        const { error: requestError } = await supabase
-            .from('tour_requests')
-            .insert({
-                tourist_id: user.id,
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
                 primary_city: primaryCity.trim() || null,
                 languages_spoken: languagesArray.length > 0 ? languagesArray : null,
                 bio: bio.trim() || null,
-                status: 'pending',
-            });
-
-        if (requestError) {
-            setSubmitting(false);
-            Alert.alert('Submission Failed', requestError.message);
-            return;
-        }
-
-        const { error: profileError } = await supabase
-            .rpc('submit_guide_application');
+            })
+            .eq('id', user.id);
 
         if (profileError) {
             setSubmitting(false);
             Alert.alert('Submission Failed', profileError.message);
+            return;
+        }
+
+        const { error: statusError } = await supabase
+            .rpc('submit_guide_application');
+
+        if (statusError) {
+            setSubmitting(false);
+            Alert.alert('Submission Failed', statusError.message);
             return;
         }
 
