@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,7 +26,7 @@ interface RouteRow {
   profiles: {
     first_name: string | null;
     last_name: string | null;
-  } | null;
+  }[] | null;
 }
 
 function formatDistance(meters: number) {
@@ -41,16 +43,16 @@ function formatDuration(seconds: number) {
   return `${hours} hr ${minutes} min`;
 }
 
-function RouteCard({ route }: { route: RouteRow }) {
+function RouteCard({ route, onPress }: { route: RouteRow; onPress: () => void }) {
   const stopCount = route.route_data?.stops?.length ?? 0;
   const duration = route.route_data?.durationSeconds;
   const distance = route.route_data?.distanceMeters;
-  const guideFirst = route.profiles?.first_name ?? '';
-  const guideLast = route.profiles?.last_name ?? '';
+  const guideFirst = route.profiles?.[0]?.first_name ?? '';
+  const guideLast = route.profiles?.[0]?.last_name ?? '';
   const guideName = [guideFirst, guideLast].filter(Boolean).join(' ') || 'Unknown Guide';
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle} numberOfLines={1}>{route.title}</Text>
         <View style={styles.cityBadge}>
@@ -79,7 +81,7 @@ function RouteCard({ route }: { route: RouteRow }) {
       ) : null}
 
       <Text style={styles.guideText}>By {guideName}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -103,7 +105,7 @@ export default function ExploreRoutesScreen() {
       if (fetchError) {
         setError(fetchError.message);
       } else {
-        setRoutes((data as RouteRow[]) ?? []);
+        setRoutes((data as unknown as RouteRow[]) ?? []);
       }
 
       setLoading(false);
@@ -111,6 +113,44 @@ export default function ExploreRoutesScreen() {
 
     fetchRoutes();
   }, []);
+
+  const handleCardPress = (route: RouteRow) => {
+    Alert.alert(
+      'Request This Route',
+      `Would you like to request "${route.title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Request',
+          onPress: () => submitRequest(route),
+        },
+      ],
+    );
+  };
+
+  const submitRequest = async (route: RouteRow) => {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      Alert.alert('Not Signed In', 'You must be signed in to request a tour.');
+      return;
+    }
+
+    const { error: insertError } = await supabase
+      .from('tour_requests')
+      .insert({
+        tourist_id: user.id,
+        route_id: route.id,
+        status: 'pending',
+      });
+
+    if (insertError) {
+      Alert.alert('Request Failed', insertError.message);
+      return;
+    }
+
+    Alert.alert('Request Sent', `Your request for "${route.title}" has been submitted.`);
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -135,7 +175,9 @@ export default function ExploreRoutesScreen() {
         <FlatList
           data={routes}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <RouteCard route={item} />}
+          renderItem={({ item }) => (
+            <RouteCard route={item} onPress={() => handleCardPress(item)} />
+          )}
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 100 }]}
           showsVerticalScrollIndicator={false}
         />
