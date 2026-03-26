@@ -1,34 +1,60 @@
-import { View, Text, Pressable, TextInput } from "react-native";
+import { useState } from "react";
+import { View, Text, Pressable, TextInput, Alert } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import {LinearGradient} from "expo-linear-gradient"; //getting into connecting backend with frontend
-
-const onUploadPress = () => {
-    // TODO: backend hookup
-};
-//LOGIC FOR SUBMITTING THE APPLICATION
-const handleSubmit = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const { error } = await supabase
-        .from("profiles")
-        .update({
-            application_status: "pending",
-        })
-        .eq("id", user?.id);
-
-    if (error) {
-        console.log("Error submitting:", error);
-        return;
-    }
-
-    // WE WILL ONLY go to success page after backend works
-    router.push("/profile/become-guide/setup_completed");
-};
-//cool
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function GuideSetup() {
+    const [primaryCity, setPrimaryCity] = useState('');
+    const [languagesSpoken, setLanguagesSpoken] = useState('');
+    const [bio, setBio] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            Alert.alert('Not Signed In', 'You must be signed in to apply.');
+            return;
+        }
+
+        setSubmitting(true);
+
+        const languagesArray = languagesSpoken
+            .split(',')
+            .map((l) => l.trim())
+            .filter(Boolean);
+
+        const { error: requestError } = await supabase
+            .from('tour_requests')
+            .insert({
+                tourist_id: user.id,
+                primary_city: primaryCity.trim() || null,
+                languages_spoken: languagesArray.length > 0 ? languagesArray : null,
+                bio: bio.trim() || null,
+                status: 'pending',
+            });
+
+        if (requestError) {
+            setSubmitting(false);
+            Alert.alert('Submission Failed', requestError.message);
+            return;
+        }
+
+        const { error: profileError } = await supabase
+            .rpc('submit_guide_application');
+
+        if (profileError) {
+            setSubmitting(false);
+            Alert.alert('Submission Failed', profileError.message);
+            return;
+        }
+
+        setSubmitting(false);
+        router.push('/profile/become-guide/setup_completed');
+    };
+
     return (
         <LinearGradient
             colors={['#0F172A', '#020617', '#000000']}
@@ -47,12 +73,17 @@ export default function GuideSetup() {
             </View>
 
             <View className="gap-6">
-                {/* Form Fields */}
                 <View>
                     <Text className="text-white/80 mb-2">Primary City</Text>
                     <View className="bg-white/10 border border-white/20 rounded-2xl flex-row items-center px-4 py-4">
                         <Ionicons name="location-outline" size={20} color="#94A3B8" />
-                        <TextInput placeholder="e.g. Paris, France" placeholderTextColor="#94A3B8" className="ml-3 text-white flex-1" />
+                        <TextInput
+                            value={primaryCity}
+                            onChangeText={setPrimaryCity}
+                            placeholder="e.g. Paris, France"
+                            placeholderTextColor="#94A3B8"
+                            className="ml-3 text-white flex-1"
+                        />
                     </View>
                 </View>
 
@@ -60,37 +91,43 @@ export default function GuideSetup() {
                     <Text className="text-white/80 mb-2">Languages Spoken</Text>
                     <View className="bg-white/10 border border-white/20 rounded-2xl flex-row items-center px-4 py-4">
                         <Ionicons name="globe-outline" size={20} color="#94A3B8" />
-                        <TextInput placeholder="English, French, Spanish..." placeholderTextColor="#94A3B8" className="ml-3 text-white flex-1" />
+                        <TextInput
+                            value={languagesSpoken}
+                            onChangeText={setLanguagesSpoken}
+                            placeholder="English, French, Spanish..."
+                            placeholderTextColor="#94A3B8"
+                            className="ml-3 text-white flex-1"
+                        />
                     </View>
                 </View>
 
                 <View>
                     <Text className="text-white/80 mb-2">Bio & Expertise</Text>
                     <View className="bg-white/10 border border-white/20 rounded-2xl px-4 py-4">
-                        <TextInput multiline numberOfLines={4} placeholder="Share your story..." placeholderTextColor="#94A3B8" className="text-white" textAlignVertical="top" />
+                        <TextInput
+                            value={bio}
+                            onChangeText={setBio}
+                            multiline
+                            numberOfLines={4}
+                            placeholder="Share your story..."
+                            placeholderTextColor="#94A3B8"
+                            className="text-white"
+                            textAlignVertical="top"
+                        />
                     </View>
-                </View>
-
-                <View>
-                    <View className="flex-row items-center justify-between mb-2">
-                        <Text className="text-white/80">Identification Documents</Text>
-                        <Ionicons name="checkmark-circle" size={18} color="#2DD4BF" />
-                    </View>
-                    <Pressable onPress={onUploadPress} className="bg-white/10 border border-white/20 rounded-2xl items-center justify-center py-10">
-                        <View className="w-14 h-14 rounded-full bg-blue-500/20 items-center justify-center mb-3">
-                            <Ionicons name="cloud-upload-outline" size={28} color="#60A5FA" />
-                        </View>
-                        <Text className="text-white font-semibold">Upload ID or Passport</Text>
-                    </Pressable>
                 </View>
             </View>
 
             <View className="mt-auto mb-8">
                 <Pressable
-                    onPress={handleSubmit} //replaced router.push("/profile/become-guide/setup_completed")
+                    onPress={handleSubmit}
+                    disabled={submitting}
                     className="bg-blue-500 py-4 rounded-2xl items-center"
+                    style={{ opacity: submitting ? 0.6 : 1 }}
                 >
-                    <Text className="text-white text-lg font-semibold">Submit →</Text>
+                    <Text className="text-white text-lg font-semibold">
+                        {submitting ? 'Submitting...' : 'Submit →'}
+                    </Text>
                 </Pressable>
             </View>
         </LinearGradient>
