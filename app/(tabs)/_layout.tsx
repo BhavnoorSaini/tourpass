@@ -47,6 +47,17 @@ export default function TabsLayout() {
                 }}
             />
 
+            {/* Explore Tab */}
+            <Tabs.Screen
+                name="explore-routes/index"
+                options={{
+                    title: 'Explore',
+                    tabBarIcon: ({ color, focused }) => (
+                        <IconSymbol size={focused ? 26 : 24} name="map.fill" color={color} />
+                    ),
+                }}
+            />
+
             {/* Feed Tab */}
             <Tabs.Screen
                 name="message/index"
