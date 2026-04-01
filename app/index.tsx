@@ -1,14 +1,23 @@
+import { ActivityIndicator, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
-import { View, ActivityIndicator } from 'react-native';
+import { useAppTheme } from '@/providers/AppThemeProvider';
 
 export default function Index() {
   const { user, initializing } = useAuth();
+  const { theme } = useAppTheme();
 
   if (initializing) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator />
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.colors.background,
+        }}
+      >
+        <ActivityIndicator color={theme.colors.accent} />
       </View>
     );
   }
@@ -19,4 +28,3 @@ export default function Index() {
 
   return <Redirect href="/(tabs)/home" />;
 }
-

@@ -1,61 +1,60 @@
-import { View, Text, TextInput, Pressable } from "react-native";
-import { useState } from "react";
-import {LinearGradient} from "expo-linear-gradient";
+import { Alert, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppHeader } from '@/components/ui/AppHeader';
+import { AppInput } from '@/components/ui/AppInput';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { AppSection } from '@/components/ui/AppSection';
+import { AppText } from '@/components/ui/AppText';
+import { useAppTheme, useThemedStyles } from '@/providers/AppThemeProvider';
 
 export default function ContactSupportScreen() {
-    const [message, setMessage] = useState("");
+  const styles = useThemedStyles(createStyles);
+  const [message, setMessage] = useState('');
 
-    return (
-        <LinearGradient
-            colors={['#0F172A', '#020617', '#000000']}
-            style={{ flex: 1 }}
-        >
-        <View style={{ padding: 20 }}>
-            <Text
-                style={{
-                    color: "#fff",
-                    fontSize: 18,
-                    fontWeight: "600",
-                    marginBottom: 12,
-                }}
-            >
-                Contact Support
-            </Text>
+  return (
+    <AppScreen contentContainerStyle={styles.screen}>
+      <AppHeader
+        backVisible
+        eyebrow="Support"
+        title="Send one clear message and keep the issue specific."
+      />
 
-            <TextInput
-                placeholder="Describe your issue..."
-                placeholderTextColor="#94A3B8"
-                value={message}
-                onChangeText={setMessage}
-                multiline
-                style={{
-                    backgroundColor: "#1C2A44",
-                    color: "#fff",
-                    borderRadius: 14,
-                    padding: 16,
-                    minHeight: 140,
-                    textAlignVertical: "top",
-                }}
-            />
-
-            <Pressable
-                style={{
-                    backgroundColor: "#2563EB",
-                    borderRadius: 14,
-                    padding: 16,
-                    marginTop: 16,
-                    alignItems: "center",
-                }}
-                onPress={() => {
-                    // later: gotta send to backend
-                    setMessage("");
-                }}
-            >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>
-                    Send Message
-                </Text>
-            </Pressable>
+      <AppSection title="Contact support" subtitle="The message body can be connected to your backend later">
+        <View style={styles.stack}>
+          <AppText variant="body">
+            Describe what happened, what you expected, and where you got stuck.
+          </AppText>
+          <AppInput
+            value={message}
+            onChangeText={setMessage}
+            placeholder="Describe your issue"
+            multiline
+          />
+          <AppButton
+            label="Send message"
+            onPress={() => {
+              setMessage('');
+              Alert.alert('Message sent', 'Support submission can be connected here.');
+            }}
+            style={styles.button}
+          />
         </View>
-        </LinearGradient>
-    );
+      </AppSection>
+    </AppScreen>
+  );
 }
+
+const createStyles = (_theme: ReturnType<typeof useAppTheme>['theme']) =>
+  StyleSheet.create({
+    screen: {
+      paddingTop: 16,
+    },
+    stack: {
+      gap: 16,
+    },
+    button: {
+      alignSelf: 'flex-start',
+      minWidth: 180,
+    },
+  });

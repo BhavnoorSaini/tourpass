@@ -6,21 +6,23 @@ import Mapbox, {
   ShapeSource,
   StyleImport,
 } from '@rnmapbox/maps';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
   PanResponder,
   PermissionsAndroid,
   Platform,
+  Pressable,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { usePreferences } from '../../contexts/PreferencesContext';
+import { AppText } from '@/components/ui/AppText';
+import { AccentLine } from '@/components/ui/AccentLine';
+import { usePreferences } from '@/contexts/PreferencesContext';
 import type { LngLat, RoutePreview } from '@/types/route';
+import { useAppTheme, useThemedStyles } from '@/providers/AppThemeProvider';
 
 const accessToken = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
 if (!accessToken) {
@@ -28,10 +30,10 @@ if (!accessToken) {
 }
 Mapbox.setAccessToken(accessToken);
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SLIDER_HEIGHT = 188;
-const MIN_PITCH = 0;
-const MAX_PITCH = 85;
+const { height: screenHeight } = Dimensions.get('window');
+const sliderHeight = 188;
+const minPitch = 0;
+const maxPitch = 85;
 
 interface MapProps {
   routePreviews?: RoutePreview[];
@@ -55,23 +57,24 @@ const requestLocationPermission = async () => {
         },
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (err) {
-      console.warn(err);
+    } catch (error) {
+      console.warn(error);
       return false;
     }
   }
+
   return true;
 };
 
 function pitchToY(pitch: number) {
-  const ratio = (pitch - MIN_PITCH) / (MAX_PITCH - MIN_PITCH);
-  return SLIDER_HEIGHT - ratio * SLIDER_HEIGHT;
+  const ratio = (pitch - minPitch) / (maxPitch - minPitch);
+  return sliderHeight - ratio * sliderHeight;
 }
 
 function yToPitch(y: number) {
-  const clamped = Math.max(0, Math.min(SLIDER_HEIGHT, y));
-  const ratio = (SLIDER_HEIGHT - clamped) / SLIDER_HEIGHT;
-  const pitch = MIN_PITCH + ratio * (MAX_PITCH - MIN_PITCH);
+  const clamped = Math.max(0, Math.min(sliderHeight, y));
+  const ratio = (sliderHeight - clamped) / sliderHeight;
+  const pitch = minPitch + ratio * (maxPitch - minPitch);
   return Math.round(pitch * 10) / 10;
 }
 
@@ -82,51 +85,25 @@ export default function Map({
   highlightedCoordinate = null,
   onMapPress,
 }: MapProps) {
-  const { mapStyle, lightPreset, is3DEnabled, isDarkMapMode, isStandardMapStyle } = usePreferences();
+  const { theme } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+  const {
+    mapStyle,
+    lightPreset,
+    is3DEnabled,
+    isStandardMapStyle,
+  } = usePreferences();
 
   const cameraRef = useRef<Mapbox.Camera>(null);
-  const [pitch, setPitch] = useState<number>(0);
+  const [pitch, setPitch] = useState(0);
   const [followUser, setFollowUser] = useState(true);
   const routePressHandledRef = useRef(false);
-
   const knobAnim = useRef(new Animated.Value(pitchToY(pitch))).current;
-  const knobYRef = useRef<number>(pitchToY(pitch));
-  const startYRef = useRef<number>(0);
-
-  const chromeColors = useMemo(
-    () =>
-      isDarkMapMode
-        ? {
-            shellBackground: 'rgba(2,6,23,0.5)',
-            shellBorder: 'rgba(148,163,184,0.3)',
-            trackBackground: 'rgba(148,163,184,0.18)',
-            fill: '#38bdf8',
-            knobBackground: 'rgba(15,23,42,0.96)',
-            knobBorder: 'rgba(148,163,184,0.34)',
-            grip: '#7dd3fc',
-            badgeBackground: 'rgba(2,6,23,0.86)',
-            badgeText: '#e2e8f0',
-            iconButtonBackground: 'rgba(2,6,23,0.84)',
-            iconColor: '#e2e8f0',
-          }
-        : {
-            shellBackground: 'rgba(248,250,252,0.3)',
-            shellBorder: 'rgba(255,255,255,0.46)',
-            trackBackground: 'rgba(15,23,42,0.16)',
-            fill: '#0ea5e9',
-            knobBackground: 'rgba(255,255,255,0.98)',
-            knobBorder: 'rgba(255,255,255,0.82)',
-            grip: '#0ea5e9',
-            badgeBackground: 'rgba(248,250,252,0.86)',
-            badgeText: '#0f172a',
-            iconButtonBackground: 'rgba(248,250,252,0.92)',
-            iconColor: '#0f172a',
-          },
-    [isDarkMapMode],
-  );
+  const knobYRef = useRef(pitchToY(pitch));
+  const startYRef = useRef(0);
 
   useEffect(() => {
-    requestLocationPermission();
+    void requestLocationPermission();
   }, []);
 
   useEffect(() => {
@@ -157,16 +134,15 @@ export default function Map({
           setFollowUser(false);
         }
       },
-      onPanResponderMove: (_evt, gestureState) => {
-        const newY = Math.max(
+      onPanResponderMove: (_event, gestureState) => {
+        const nextY = Math.max(
           0,
-          Math.min(SLIDER_HEIGHT, startYRef.current + gestureState.dy),
+          Math.min(sliderHeight, startYRef.current + gestureState.dy),
         );
-        knobAnim.setValue(newY);
-        knobYRef.current = newY;
-        setPitch(yToPitch(newY));
+        knobAnim.setValue(nextY);
+        knobYRef.current = nextY;
+        setPitch(yToPitch(nextY));
       },
-      onPanResponderRelease: () => {},
     }),
   ).current;
 
@@ -194,7 +170,7 @@ export default function Map({
     onSelectRoute?.(routeId);
   };
 
-  const activeTrackHeight = SLIDER_HEIGHT - pitchToY(pitch);
+  const activeTrackHeight = sliderHeight - pitchToY(pitch);
 
   return (
     <View style={styles.container}>
@@ -227,23 +203,18 @@ export default function Map({
           />
         ) : null}
 
-        <LocationPuck
-          puckBearingEnabled
-          puckBearing="heading"
-          pulsing={{ isEnabled: true }}
-        />
+        <LocationPuck puckBearingEnabled puckBearing="heading" pulsing={{ isEnabled: true }} />
 
         {routePreviews.map((routePreview, index) => {
           const isSelected = routePreview.routeId === selectedRouteId;
+
           return (
             <ShapeSource
               id={`route-source-${routePreview.routeId}`}
               key={routePreview.routeId}
               shape={{
                 type: 'Feature',
-                properties: {
-                  routeId: routePreview.routeId,
-                },
+                properties: { routeId: routePreview.routeId },
                 geometry: {
                   type: 'LineString',
                   coordinates: routePreview.coordinates,
@@ -254,9 +225,9 @@ export default function Map({
               <LineLayer
                 id={`route-line-${routePreview.routeId}`}
                 style={{
-                  lineColor: isSelected ? '#1d4ed8' : '#38bdf8',
-                  lineWidth: isSelected ? 7 : 5,
-                  lineOpacity: isSelected ? 0.94 : 0.54,
+                  lineColor: isSelected ? theme.colors.textPrimary : theme.colors.accent,
+                  lineWidth: isSelected ? 6 : 4,
+                  lineOpacity: isSelected ? 0.9 : 0.54,
                   lineCap: 'round',
                   lineJoin: 'round',
                   lineSortKey: index,
@@ -268,179 +239,107 @@ export default function Map({
       </MapView>
 
       <View style={styles.sliderContainer} pointerEvents="box-none">
-        <View
-          style={[
-            styles.sliderShell,
-            {
-              backgroundColor: chromeColors.shellBackground,
-              borderColor: chromeColors.shellBorder,
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.sliderTrack,
-              {
-                backgroundColor: chromeColors.trackBackground,
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.sliderFill,
-                {
-                  height: activeTrackHeight,
-                  backgroundColor: chromeColors.fill,
-                },
-              ]}
-            />
+        <View style={styles.sliderShell}>
+          <View style={styles.sliderTrack}>
+            <View style={[styles.sliderFill, { height: activeTrackHeight }]} />
             <Animated.View
               style={[
                 styles.knob,
                 {
-                  backgroundColor: chromeColors.knobBackground,
-                  borderColor: chromeColors.knobBorder,
                   transform: [{ translateY: knobAnim }],
                 },
               ]}
               {...panResponder.panHandlers}
-            >
-              <View
-                style={[
-                  styles.knobGrip,
-                  {
-                    backgroundColor: chromeColors.grip,
-                  },
-                ]}
-              />
-            </Animated.View>
+            />
           </View>
         </View>
-        <View
-          style={[
-            styles.pitchBadge,
-            {
-              backgroundColor: chromeColors.badgeBackground,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.pitchText,
-              {
-                color: chromeColors.badgeText,
-              },
-            ]}
-          >
+
+        <View style={styles.pitchBadge}>
+          <AppText variant="mono" color={theme.colors.textPrimary}>
             {Math.round(pitch)}°
-          </Text>
+          </AppText>
         </View>
       </View>
 
-      {!followUser && (
-        <TouchableOpacity
-          style={[
-            styles.recenterButton,
-            {
-              backgroundColor: chromeColors.iconButtonBackground,
-            },
-          ]}
-          onPress={() => {
-            setFollowUser(true);
-          }}
-          activeOpacity={0.88}
+      {!followUser ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setFollowUser(true)}
+          style={styles.recenterButton}
         >
-          <MaterialIcons name="my-location" size={20} color={chromeColors.iconColor} />
-        </TouchableOpacity>
-      )}
+          <MaterialIcons name="my-location" size={18} color={theme.colors.textPrimary} />
+          <AccentLine active inset={10} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
-  sliderContainer: {
-    position: 'absolute',
-    right: 12,
-    top: (SCREEN_HEIGHT - SLIDER_HEIGHT) / 2 - 12,
-    alignItems: 'center',
-  },
-  sliderShell: {
-    width: 48,
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderRadius: 24,
-    borderWidth: 1,
-    shadowColor: '#020617',
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  sliderTrack: {
-    height: SLIDER_HEIGHT,
-    width: 8,
-    borderRadius: 999,
-    overflow: 'visible',
-  },
-  sliderFill: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 999,
-  },
-  knob: {
-    position: 'absolute',
-    left: -11,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    shadowColor: '#020617',
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    elevation: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  knobGrip: {
-    width: 11,
-    height: 11,
-    borderRadius: 999,
-  },
-  pitchBadge: {
-    marginTop: 10,
-    minWidth: 48,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 999,
-    alignItems: 'center',
-    shadowColor: '#020617',
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  pitchText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  recenterButton: {
-    position: 'absolute',
-    bottom: 112,
-    right: 14,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#020617',
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>['theme']) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    map: {
+      flex: 1,
+    },
+    sliderContainer: {
+      position: 'absolute',
+      right: 12,
+      top: (screenHeight - sliderHeight) / 2 - 12,
+      alignItems: 'center',
+    },
+    sliderShell: {
+      width: 44,
+      paddingVertical: 12,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.mapOverlay,
+    },
+    sliderTrack: {
+      height: sliderHeight,
+      width: 6,
+      backgroundColor: theme.colors.border,
+      overflow: 'visible',
+    },
+    sliderFill: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: theme.colors.accent,
+    },
+    knob: {
+      position: 'absolute',
+      left: -9,
+      width: 24,
+      height: 24,
+      borderWidth: 1,
+      borderColor: theme.colors.borderStrong,
+      backgroundColor: theme.colors.surface,
+    },
+    pitchBadge: {
+      minWidth: 44,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.mapOverlay,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 6,
+    },
+    recenterButton: {
+      position: 'absolute',
+      right: 12,
+      bottom: 120,
+      width: 44,
+      height: 44,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.mapOverlay,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  });

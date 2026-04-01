@@ -3,16 +3,13 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
-  ScrollView,
+  Pressable,
   StyleSheet,
-  Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
 import Mapbox, {
   Camera,
   LineLayer,
@@ -24,6 +21,10 @@ import Mapbox, {
 } from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppSurface } from '@/components/ui/AppSurface';
+import { AppText } from '@/components/ui/AppText';
+import { AccentLine } from '@/components/ui/AccentLine';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { useRoutes } from '@/contexts/RoutesContext';
 import { useAuth } from '@/providers/AuthProvider';
@@ -37,6 +38,7 @@ import {
   type RetrievedMapboxLocation,
 } from '@/lib/mapbox';
 import type { LngLat, RouteOption, RouteStop, StoredRoute } from '@/types/route';
+import { useAppTheme, useThemedStyles } from '@/providers/AppThemeProvider';
 
 const accessToken = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
 if (!accessToken) {
@@ -44,7 +46,7 @@ if (!accessToken) {
 }
 Mapbox.setAccessToken(accessToken);
 
-const DEFAULT_CENTER: LngLat = [-87.6298, 41.8781];
+const defaultCenter: LngLat = [-87.6298, 41.8781];
 
 function formatDistance(distanceMeters: number) {
   const kilometers = distanceMeters / 1000;
@@ -70,7 +72,15 @@ function formatDuration(durationSeconds: number) {
 export default function CreateRouteScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { mapStyle, lightPreset, is3DEnabled, isDarkMapMode, isStandardMapStyle } = usePreferences();
+  const { theme } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+  const {
+    mapStyle,
+    lightPreset,
+    is3DEnabled,
+    isDarkMapMode,
+    isStandardMapStyle,
+  } = usePreferences();
   const { addRoute } = useRoutes();
   const { user } = useAuth();
 
@@ -97,64 +107,27 @@ export default function CreateRouteScreen() {
   const selectedRouteOption =
     selectedRouteIndex !== null ? routeOptions[selectedRouteIndex] ?? null : null;
   const visibleSuggestions = suggestions.slice(0, 5);
-  const shouldShowSuggestions = suggestionsOpen && suggestions.length > 0;
-  const blurTint = isDarkMapMode ? 'dark' : 'light';
-  const chromeColors = useMemo(
-    () =>
-      isDarkMapMode
-        ? {
-            glassBorder: 'rgba(148,163,184,0.32)',
-            glassSurface: 'rgba(2,6,23,0.48)',
-            glassPanel: 'rgba(2,6,23,0.58)',
-            softSurface: 'rgba(15,23,42,0.72)',
-            softSurfaceStrong: 'rgba(15,23,42,0.9)',
-            softSurfaceMuted: 'rgba(15,23,42,0.6)',
-            textPrimary: '#e2e8f0',
-            textSecondary: '#94a3b8',
-            accent: '#7dd3fc',
-            accentStrong: '#38bdf8',
-            accentSoft: 'rgba(56,189,248,0.18)',
-            statusAccent: '#5eead4',
-            iconColor: '#e2e8f0',
-            placeholder: '#94a3b8',
-          }
-        : {
-            glassBorder: 'rgba(255,255,255,0.52)',
-            glassSurface: 'rgba(248,250,252,0.4)',
-            glassPanel: 'rgba(248,250,252,0.48)',
-            softSurface: 'rgba(255,255,255,0.72)',
-            softSurfaceStrong: 'rgba(248,250,252,0.92)',
-            softSurfaceMuted: 'rgba(255,255,255,0.62)',
-            textPrimary: '#0f172a',
-            textSecondary: '#475569',
-            accent: '#2563eb',
-            accentStrong: '#2563eb',
-            accentSoft: 'rgba(37,99,235,0.12)',
-            statusAccent: '#0f766e',
-            iconColor: '#0f172a',
-            placeholder: '#64748b',
-          },
-    [isDarkMapMode],
-  );
+  const showSuggestions = suggestionsOpen && suggestions.length > 0;
+  const chromeSurface = isDarkMapMode ? theme.colors.mapOverlay : theme.colors.surface;
 
   const routeStatusText = useMemo(() => {
     if (directionsLoading) {
-      return 'Building walking route options...';
+      return 'Building walking route options.';
     }
 
     if (selectedRouteOption) {
-      return 'Selected route is ready. Tap the map to clear it or start navigation.';
+      return 'A route is selected. Publish it or start the walk now.';
     }
 
     if (routeOptions.length > 0) {
-      return 'Route cleared. Tap a highlighted path to reselect it.';
+      return 'Tap one of the visible paths on the map to select it again.';
     }
 
     if (pendingStop) {
-      return 'Add this stop to generate route options once you have at least two stops.';
+      return 'Add the selected place as a stop to keep building the route.';
     }
 
-    return 'Search for places and add at least 2 stops to build your route.';
+    return 'Search for places and add at least two stops to generate paths.';
   }, [directionsLoading, pendingStop, routeOptions.length, selectedRouteOption]);
 
   useEffect(() => {
@@ -190,7 +163,7 @@ export default function CreateRouteScreen() {
       }
     };
 
-    setupLocation();
+    void setupLocation();
 
     return () => {
       subscription?.remove();
@@ -237,7 +210,7 @@ export default function CreateRouteScreen() {
           setSearchLoading(false);
         }
       }
-    }, 280);
+    }, 260);
 
     return () => {
       cancelled = true;
@@ -293,7 +266,7 @@ export default function CreateRouteScreen() {
       }
     };
 
-    loadDirections();
+    void loadDirections();
 
     return () => {
       cancelled = true;
@@ -304,20 +277,6 @@ export default function CreateRouteScreen() {
     Keyboard.dismiss();
     setSearchFocused(false);
     setSuggestionsOpen(false);
-  };
-
-  const handleSearchChange = (nextQuery: string) => {
-    setSearchQuery(nextQuery);
-    setSearchFocused(true);
-
-    if (pendingStop && nextQuery !== pendingStop.fullAddress) {
-      setPendingStop(null);
-    }
-
-    if (nextQuery.trim().length < 2) {
-      setSuggestions([]);
-      setSuggestionsOpen(false);
-    }
   };
 
   const handleSuggestionPress = async (suggestion: MapboxSuggestion) => {
@@ -387,7 +346,7 @@ export default function CreateRouteScreen() {
     }
 
     if (stops.length < 2) {
-      Alert.alert('More Stops Needed', 'Add at least 2 stops to publish a route.');
+      Alert.alert('More Stops Needed', 'Add at least two stops to publish a route.');
       return;
     }
 
@@ -416,13 +375,17 @@ export default function CreateRouteScreen() {
       distanceMeters: selectedRoute.distanceMeters,
     };
 
-    const { data, error } = await supabase.from('routes').insert({
-      creator_id: user.id,
-      title: trimmedTitle,
-      city: stops[0].fullAddress,
-      route_data: routeData,
-      is_public: true,
-    }).select('id, created_at').single();
+    const { data, error } = await supabase
+      .from('routes')
+      .insert({
+        creator_id: user.id,
+        title: trimmedTitle,
+        city: stops[0].fullAddress,
+        route_data: routeData,
+        is_public: true,
+      })
+      .select('id, created_at')
+      .single();
 
     if (error) {
       setPublishing(false);
@@ -478,8 +441,9 @@ export default function CreateRouteScreen() {
     setSelectedRouteIndex(null);
   };
 
-  const headerTop = insets.top + 12;
-  const composerBottom = Math.max(insets.bottom + 18, 28);
+  const removeStop = (stopId: string) => {
+    setStops((currentStops) => currentStops.filter((stop) => stop.id !== stopId));
+  };
 
   return (
     <View style={styles.container}>
@@ -498,7 +462,7 @@ export default function CreateRouteScreen() {
           followUserLocation={followUser}
           followZoomLevel={14}
           defaultSettings={{
-            centerCoordinate: userCoordinate ?? DEFAULT_CENTER,
+            centerCoordinate: userCoordinate ?? defaultCenter,
             zoomLevel: userCoordinate ? 14 : 10,
           }}
         />
@@ -515,11 +479,7 @@ export default function CreateRouteScreen() {
           />
         ) : null}
 
-        <LocationPuck
-          puckBearingEnabled
-          puckBearing="heading"
-          pulsing={{ isEnabled: true }}
-        />
+        <LocationPuck puckBearingEnabled puckBearing="heading" pulsing={{ isEnabled: true }} />
 
         {routeOptions.map((routeOption, index) => {
           const isSelected = selectedRouteIndex === index;
@@ -529,9 +489,7 @@ export default function CreateRouteScreen() {
               key={routeOption.id}
               shape={{
                 type: 'Feature',
-                properties: {
-                  routeOptionId: routeOption.id,
-                },
+                properties: { routeOptionId: routeOption.id },
                 geometry: {
                   type: 'LineString',
                   coordinates: routeOption.coordinates,
@@ -549,9 +507,9 @@ export default function CreateRouteScreen() {
               <LineLayer
                 id={`new-route-line-${index}`}
                 style={{
-                  lineColor: isSelected ? '#0f766e' : '#38bdf8',
-                  lineWidth: isSelected ? 7 : 4.5,
-                  lineOpacity: isSelected ? 0.96 : 0.5,
+                  lineColor: isSelected ? theme.colors.textPrimary : theme.colors.accent,
+                  lineWidth: isSelected ? 6 : 4,
+                  lineOpacity: isSelected ? 0.92 : 0.5,
                   lineCap: 'round',
                   lineJoin: 'round',
                 }}
@@ -561,867 +519,418 @@ export default function CreateRouteScreen() {
         })}
 
         {stops.map((stop, index) => (
-          <PointAnnotation
-            key={stop.id}
-            id={stop.id}
-            coordinate={stop.coordinate}
-          >
+          <PointAnnotation key={stop.id} id={stop.id} coordinate={stop.coordinate}>
             <View style={styles.stopMarker}>
-              <Text style={styles.stopMarkerText}>{index + 1}</Text>
+              <AppText variant="mono" color={theme.colors.textInverse}>
+                {index + 1}
+              </AppText>
             </View>
           </PointAnnotation>
         ))}
 
-        {pendingStop && (
-          <PointAnnotation
-            id="pending-stop"
-            coordinate={pendingStop.coordinate}
-          >
+        {pendingStop ? (
+          <PointAnnotation id="pending-stop" coordinate={pendingStop.coordinate}>
             <View style={styles.pendingMarker}>
-              <MaterialIcons name="add" size={14} color="#ffffff" />
+              <Ionicons name="add" size={14} color={theme.colors.textInverse} />
             </View>
           </PointAnnotation>
-        )}
+        ) : null}
       </MapView>
 
-      <View style={[styles.headerRow, { top: headerTop }]}>
-        <View
-          style={[
-            styles.iconChrome,
-            {
-              borderColor: chromeColors.glassBorder,
-              backgroundColor: chromeColors.glassSurface,
-            },
-          ]}
-        >
-          <BlurView intensity={50} tint={blurTint} style={styles.blurFill}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => router.back()}
-              activeOpacity={0.88}
-            >
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={chromeColors.iconColor} />
-            </TouchableOpacity>
-          </BlurView>
-        </View>
+      <View style={[styles.topBar, { top: insets.top + theme.spacing.xs }]}>
+        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.iconButton}>
+          <Ionicons name="arrow-back" size={18} color={theme.colors.textPrimary} />
+          <AccentLine active={false} />
+        </Pressable>
 
-        <View
-          style={[
-            styles.titleChrome,
-            {
-              borderColor: chromeColors.glassBorder,
-              backgroundColor: chromeColors.glassSurface,
-            },
-          ]}
-        >
-          <BlurView intensity={60} tint={blurTint} style={styles.blurFill}>
-            <View style={styles.titleInputRow}>
-              <MaterialIcons name="route" size={18} color={chromeColors.accentStrong} />
-              <TextInput
-                value={title}
-                onChangeText={setTitle}
-                onFocus={() => {
-                  setSearchFocused(false);
-                  setSuggestionsOpen(false);
-                }}
-                placeholder="Route title"
-                placeholderTextColor={chromeColors.placeholder}
-                style={[
-                  styles.titleInput,
-                  {
-                    color: chromeColors.textPrimary,
-                  },
-                ]}
-              />
-            </View>
-          </BlurView>
-        </View>
+        <AppSurface style={[styles.titleShell, { backgroundColor: chromeSurface }]}>
+          <View style={styles.titleRow}>
+            <AppText variant="label">Route title</AppText>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Name this route"
+              placeholderTextColor={theme.colors.textMuted}
+              selectionColor={theme.colors.accent}
+              style={styles.titleInput}
+            />
+          </View>
+        </AppSurface>
       </View>
 
-      {!followUser && (
-        <TouchableOpacity
-          style={[
-            styles.recenterButton,
-            {
-              bottom: composerBottom + 312,
-              backgroundColor: chromeColors.softSurfaceStrong,
-            },
-          ]}
+      {!followUser ? (
+        <Pressable
+          accessibilityRole="button"
           onPress={() => setFollowUser(true)}
-          activeOpacity={0.88}
+          style={[styles.recenterButton, { bottom: insets.bottom + 360 }]}
         >
-          <MaterialIcons name="my-location" size={20} color={chromeColors.iconColor} />
-        </TouchableOpacity>
-      )}
+          <Ionicons name="locate-outline" size={18} color={theme.colors.textPrimary} />
+          <AccentLine active />
+        </Pressable>
+      ) : null}
 
-      <View style={[styles.composerWrap, { bottom: composerBottom }]}>
-        <View
-          style={[
-            styles.composerChrome,
-            {
-              borderColor: chromeColors.glassBorder,
-              backgroundColor: chromeColors.glassPanel,
-            },
-          ]}
-        >
-          <BlurView intensity={68} tint={blurTint} style={styles.blurFill}>
-            <View style={styles.composer}>
-              <View style={styles.composerHeader}>
-                <View>
-                  <Text
-                    style={[
-                      styles.composerEyebrow,
-                      {
-                        color: chromeColors.accentStrong,
-                      },
-                    ]}
-                  >
-                    Route Builder
-                  </Text>
-                  <Text
-                    style={[
-                      styles.composerTitle,
-                      {
-                        color: chromeColors.textPrimary,
-                      },
-                    ]}
-                  >
-                    Shape the walk as you go
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.statusPill,
-                    {
-                      backgroundColor: chromeColors.softSurfaceMuted,
-                    },
-                  ]}
-                >
-                  <MaterialIcons name="alt-route" size={14} color={chromeColors.statusAccent} />
-                  <Text
-                    style={[
-                      styles.statusPillText,
-                      {
-                        color: chromeColors.textPrimary,
-                      },
-                    ]}
-                  >
-                    {routeOptions.length || 0} routes
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.searchRow}>
-                <View
-                  style={[
-                    styles.searchField,
-                    {
-                      backgroundColor: chromeColors.softSurface,
-                    },
-                  ]}
-                >
-                  <MaterialIcons name="search" size={18} color={chromeColors.textSecondary} />
-                  <TextInput
-                    value={searchQuery}
-                    onChangeText={handleSearchChange}
-                    onFocus={() => {
-                      setSearchFocused(true);
-                      if (searchQuery.trim().length >= 2 && suggestions.length > 0) {
-                        setSuggestionsOpen(true);
-                      }
-                    }}
-                    placeholder="Search for your next stop"
-                    placeholderTextColor={chromeColors.placeholder}
-                    style={[
-                      styles.searchInput,
-                      {
-                        color: chromeColors.textPrimary,
-                      },
-                    ]}
-                    autoCorrect={false}
-                    autoCapitalize="none"
-                  />
-                  {(searchLoading || selectionLoading) && (
-                    <ActivityIndicator size="small" color="#2563eb" />
-                  )}
-                </View>
-
-                <TouchableOpacity
-                  style={[
-                    styles.addStopButton,
-                    !pendingStop ? styles.addStopButtonDisabled : null,
-                  ]}
-                  disabled={!pendingStop}
-                  onPress={handleAddNextStop}
-                  activeOpacity={0.88}
-                >
-                  <MaterialIcons name="add" size={18} color="#ffffff" />
-                  <Text style={styles.addStopButtonText}>Add</Text>
-                </TouchableOpacity>
-              </View>
-
-              {shouldShowSuggestions && (
-                <View
-                  style={[
-                    styles.suggestionsPanel,
-                    {
-                      backgroundColor: chromeColors.softSurface,
-                    },
-                  ]}
-                >
-                  {visibleSuggestions.map((suggestion, index) => (
-                    <TouchableOpacity
-                      key={suggestion.mapboxId}
-                      style={[
-                        styles.suggestionRow,
-                        {
-                          borderBottomColor: chromeColors.glassBorder,
-                        },
-                        index === visibleSuggestions.length - 1 ? styles.suggestionRowLast : null,
-                      ]}
-                      onPress={() => handleSuggestionPress(suggestion)}
-                      activeOpacity={0.82}
-                    >
-                      <View
-                        style={[
-                          styles.suggestionIconWrap,
-                          {
-                            backgroundColor: chromeColors.accentSoft,
-                          },
-                        ]}
-                      >
-                        <MaterialIcons name="place" size={15} color={chromeColors.accentStrong} />
-                      </View>
-                      <View style={styles.suggestionCopy}>
-                        <Text
-                          style={[
-                            styles.suggestionTitle,
-                            {
-                              color: chromeColors.textPrimary,
-                            },
-                          ]}
-                        >
-                          {suggestion.name}
-                        </Text>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.suggestionSubtitle,
-                            {
-                              color: chromeColors.textSecondary,
-                            },
-                          ]}
-                        >
-                          {suggestion.fullAddress}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              <View
-                style={[
-                  styles.pendingCard,
-                  {
-                    backgroundColor: chromeColors.softSurfaceMuted,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.pendingIconWrap,
-                    {
-                      backgroundColor: chromeColors.accentSoft,
-                    },
-                  ]}
-                >
-                  <MaterialIcons
-                    name={pendingStop ? 'flag' : 'travel-explore'}
-                    size={16}
-                    color={chromeColors.statusAccent}
-                  />
-                </View>
-                <View style={styles.pendingCopy}>
-                  <Text
-                    style={[
-                      styles.pendingLabel,
-                      {
-                        color: chromeColors.statusAccent,
-                      },
-                    ]}
-                  >
-                    {pendingStop ? 'Ready to add' : 'No stop selected yet'}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.pendingValue,
-                      {
-                        color: chromeColors.textPrimary,
-                      },
-                    ]}
-                  >
-                    {pendingStop ? pendingStop.name : 'Choose a place from the search results.'}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.metricsRow}>
-                <View
-                  style={[
-                    styles.metricPill,
-                    {
-                      backgroundColor: chromeColors.softSurfaceMuted,
-                    },
-                  ]}
-                >
-                  <MaterialIcons name="room" size={14} color={chromeColors.accentStrong} />
-                  <Text
-                    style={[
-                      styles.metricPillText,
-                      {
-                        color: chromeColors.textPrimary,
-                      },
-                    ]}
-                  >
-                    {stops.length} stops
-                  </Text>
-                </View>
-
-                {selectedRouteOption && (
-                  <>
-                    <View
-                      style={[
-                        styles.metricPill,
-                        {
-                          backgroundColor: chromeColors.softSurfaceMuted,
-                        },
-                      ]}
-                    >
-                      <MaterialIcons name="straighten" size={14} color={chromeColors.accentStrong} />
-                      <Text
-                        style={[
-                          styles.metricPillText,
-                          {
-                            color: chromeColors.textPrimary,
-                          },
-                        ]}
-                      >
-                        {formatDistance(selectedRouteOption.distanceMeters)}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.metricPill,
-                        {
-                          backgroundColor: chromeColors.softSurfaceMuted,
-                        },
-                      ]}
-                    >
-                      <MaterialIcons name="schedule" size={14} color={chromeColors.accentStrong} />
-                      <Text
-                        style={[
-                          styles.metricPillText,
-                          {
-                            color: chromeColors.textPrimary,
-                          },
-                        ]}
-                      >
-                        {formatDuration(selectedRouteOption.durationSeconds)}
-                      </Text>
-                    </View>
-                  </>
-                )}
-              </View>
-
-              <Text
-                style={[
-                  styles.routeStatusText,
-                  {
-                    color: chromeColors.textSecondary,
-                  },
-                ]}
-              >
-                {routeStatusText}
-              </Text>
-
-              {stops.length > 0 && (
-                <View style={styles.stopsSection}>
-                  <Text
-                    style={[
-                      styles.sectionLabel,
-                      {
-                        color: chromeColors.textSecondary,
-                      },
-                    ]}
-                  >
-                    Stops
-                  </Text>
-                  <ScrollView
-                    style={styles.stopsList}
-                    contentContainerStyle={styles.stopsListContent}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {stops.map((stop, index) => (
-                      <View
-                        style={[
-                          styles.stopRow,
-                          {
-                            backgroundColor: chromeColors.softSurfaceMuted,
-                          },
-                        ]}
-                        key={stop.id}
-                      >
-                        <View style={styles.stopIndexBubble}>
-                          <Text style={styles.stopIndexText}>{index + 1}</Text>
-                        </View>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.stopText,
-                            {
-                              color: chromeColors.textPrimary,
-                            },
-                          ]}
-                        >
-                          {stop.name}
-                        </Text>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-
-              <View style={styles.actionRow}>
-                {selectedRouteOption && (
-                  <TouchableOpacity
-                    style={[
-                      styles.secondaryAction,
-                      {
-                        backgroundColor: chromeColors.softSurface,
-                      },
-                    ]}
-                    onPress={handleStartNavigation}
-                    activeOpacity={0.88}
-                  >
-                    <MaterialIcons name="directions-walk" size={18} color={chromeColors.textPrimary} />
-                    <Text
-                      style={[
-                        styles.secondaryActionText,
-                        {
-                          color: chromeColors.textPrimary,
-                        },
-                      ]}
-                    >
-                      Start
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  style={[
-                    styles.primaryAction,
-                    publishing ? styles.primaryActionDisabled : null,
-                  ]}
-                  onPress={handlePublish}
-                  disabled={publishing}
-                  activeOpacity={0.9}
-                >
-                  {publishing ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
-                    <>
-                      <MaterialIcons name="publish" size={18} color="#ffffff" />
-                      <Text style={styles.primaryActionText}>Publish</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
+      <View style={[styles.bottomComposer, { bottom: insets.bottom + theme.spacing.sm }]}>
+        <AppSurface style={[styles.composerSurface, { backgroundColor: chromeSurface }]}>
+          <View style={styles.composerHeader}>
+            <View>
+              <AppText variant="label">Route builder</AppText>
+              <AppText variant="sectionTitle" style={styles.composerTitle}>
+                Build the walk one stop at a time.
+              </AppText>
             </View>
-          </BlurView>
-        </View>
+            <AppText variant="mono">{routeOptions.length} options</AppText>
+          </View>
+
+          <View style={styles.searchShell}>
+            <View style={styles.inlineInput}>
+              <Ionicons name="search-outline" size={16} color={theme.colors.textMuted} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={(nextQuery) => {
+                  setSearchQuery(nextQuery);
+                  setSearchFocused(true);
+
+                  if (pendingStop && nextQuery !== pendingStop.fullAddress) {
+                    setPendingStop(null);
+                  }
+
+                  if (nextQuery.trim().length < 2) {
+                    setSuggestions([]);
+                    setSuggestionsOpen(false);
+                  }
+                }}
+                onFocus={() => {
+                  setSearchFocused(true);
+                  if (searchQuery.trim().length >= 2 && suggestions.length > 0) {
+                    setSuggestionsOpen(true);
+                  }
+                }}
+                placeholder="Search for your next stop"
+                placeholderTextColor={theme.colors.textMuted}
+                selectionColor={theme.colors.accent}
+                style={styles.searchInput}
+              />
+              {(searchLoading || selectionLoading) ? (
+                <ActivityIndicator size="small" color={theme.colors.accent} />
+              ) : null}
+              <AccentLine active={searchFocused} />
+            </View>
+
+            <AppButton
+              label="Add"
+              onPress={handleAddNextStop}
+              disabled={!pendingStop}
+              style={styles.addButton}
+            />
+          </View>
+
+          {showSuggestions ? (
+            <AppSurface style={styles.suggestionsSurface}>
+              {visibleSuggestions.map((suggestion, index) => (
+                <Pressable
+                  key={suggestion.mapboxId}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    void handleSuggestionPress(suggestion);
+                  }}
+                  style={[
+                    styles.suggestionRow,
+                    index < visibleSuggestions.length - 1 && {
+                      borderBottomWidth: 1,
+                      borderBottomColor: theme.colors.border,
+                    },
+                  ]}
+                >
+                  <View style={styles.suggestionCopy}>
+                    <AppText variant="title">{suggestion.name}</AppText>
+                    <AppText variant="caption">{suggestion.fullAddress}</AppText>
+                  </View>
+                  <Ionicons name="arrow-forward" size={16} color={theme.colors.textMuted} />
+                </Pressable>
+              ))}
+            </AppSurface>
+          ) : null}
+
+          <View style={styles.pendingRow}>
+            <View style={styles.pendingCopy}>
+              <AppText variant="label">{pendingStop ? 'Ready to add' : 'Waiting for a place'}</AppText>
+              <AppText variant="bodyStrong">
+                {pendingStop ? pendingStop.name : 'Choose a search result and add it as a stop.'}
+              </AppText>
+            </View>
+          </View>
+
+          <View style={styles.metricRow}>
+            <View style={styles.metricItem}>
+              <AppText variant="label">Stops</AppText>
+              <AppText variant="title">{stops.length}</AppText>
+            </View>
+            <View style={styles.metricItem}>
+              <AppText variant="label">Distance</AppText>
+              <AppText variant="title">
+                {selectedRouteOption ? formatDistance(selectedRouteOption.distanceMeters) : '—'}
+              </AppText>
+            </View>
+            <View style={styles.metricItem}>
+              <AppText variant="label">Duration</AppText>
+              <AppText variant="title">
+                {selectedRouteOption ? formatDuration(selectedRouteOption.durationSeconds) : '—'}
+              </AppText>
+            </View>
+          </View>
+
+          <AppText variant="caption" style={styles.statusText}>
+            {routeStatusText}
+          </AppText>
+
+          {stops.length > 0 ? (
+            <View style={styles.stopList}>
+              {stops.map((stop, index) => (
+                <View key={stop.id} style={styles.stopRow}>
+                  <View style={styles.stopIndex}>
+                    <AppText variant="mono" color={theme.colors.textInverse}>
+                      {index + 1}
+                    </AppText>
+                  </View>
+                  <View style={styles.stopContent}>
+                    <AppText variant="title" numberOfLines={1}>
+                      {stop.name}
+                    </AppText>
+                    <AppText variant="caption" numberOfLines={1}>
+                      {stop.fullAddress}
+                    </AppText>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => removeStop(stop.id)}
+                    style={styles.removeButton}
+                  >
+                    <Ionicons name="close" size={16} color={theme.colors.textMuted} />
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          <View style={styles.actionRow}>
+            <AppButton
+              label="Publish"
+              onPress={handlePublish}
+              loading={publishing}
+              style={styles.actionButton}
+            />
+            {selectedRouteOption ? (
+              <AppButton
+                label="Start"
+                variant="secondary"
+                onPress={handleStartNavigation}
+                style={styles.actionButton}
+              />
+            ) : null}
+          </View>
+        </AppSurface>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#020617',
-  },
-  map: {
-    flex: 1,
-  },
-  blurFill: {
-    flex: 1,
-  },
-  headerRow: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconChrome: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.52)',
-    backgroundColor: 'rgba(248,250,252,0.4)',
-    shadowColor: '#020617',
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  iconButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  titleChrome: {
-    flex: 1,
-    height: 54,
-    borderRadius: 27,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.52)',
-    backgroundColor: 'rgba(248,250,252,0.4)',
-    shadowColor: '#020617',
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  titleInputRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    gap: 10,
-  },
-  titleInput: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  recenterButton: {
-    position: 'absolute',
-    right: 18,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(248,250,252,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#020617',
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 8,
-  },
-  composerWrap: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-  },
-  composerChrome: {
-    borderRadius: 30,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.58)',
-    backgroundColor: 'rgba(248,250,252,0.48)',
-    shadowColor: '#020617',
-    shadowOpacity: 0.24,
-    shadowRadius: 24,
-    elevation: 10,
-  },
-  composer: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 18,
-  },
-  composerHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  composerEyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.1,
-    color: '#2563eb',
-  },
-  composerTitle: {
-    marginTop: 4,
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,0.66)',
-  },
-  statusPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 16,
-  },
-  searchField: {
-    flex: 1,
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.72)',
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: '#0f172a',
-    fontWeight: '500',
-  },
-  addStopButton: {
-    minWidth: 92,
-    height: 54,
-    borderRadius: 999,
-    backgroundColor: '#0f172a',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  addStopButtonDisabled: {
-    backgroundColor: 'rgba(15,23,42,0.42)',
-  },
-  addStopButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  suggestionsPanel: {
-    marginTop: 12,
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.76)',
-  },
-  suggestionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(148,163,184,0.36)',
-  },
-  suggestionRowLast: {
-    borderBottomWidth: 0,
-  },
-  suggestionIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(37,99,235,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  suggestionCopy: {
-    flex: 1,
-  },
-  suggestionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  suggestionSubtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    color: '#475569',
-  },
-  pendingCard: {
-    marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.62)',
-  },
-  pendingIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(15,118,110,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pendingCopy: {
-    flex: 1,
-  },
-  pendingLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0f766e',
-  },
-  pendingValue: {
-    marginTop: 3,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 14,
-  },
-  metricPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,0.68)',
-  },
-  metricPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  routeStatusText: {
-    marginTop: 12,
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#334155',
-    fontWeight: '500',
-  },
-  stopsSection: {
-    marginTop: 14,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    color: '#475569',
-  },
-  stopsList: {
-    marginTop: 10,
-    maxHeight: 120,
-  },
-  stopsListContent: {
-    gap: 8,
-  },
-  stopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.58)',
-  },
-  stopIndexBubble: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#2563eb',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stopIndexText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  stopText: {
-    flex: 1,
-    color: '#0f172a',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 18,
-  },
-  secondaryAction: {
-    flex: 1,
-    minHeight: 56,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.76)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  secondaryActionText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  primaryAction: {
-    flex: 1.15,
-    minHeight: 56,
-    borderRadius: 999,
-    backgroundColor: '#0f172a',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  primaryActionDisabled: {
-    opacity: 0.72,
-  },
-  primaryActionText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  stopMarker: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#2563eb',
-    borderWidth: 2,
-    borderColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stopMarkerText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 11,
-  },
-  pendingMarker: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#0f766e',
-    borderWidth: 2,
-    borderColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>['theme']) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    map: {
+      flex: 1,
+    },
+    topBar: {
+      position: 'absolute',
+      left: theme.spacing.sm,
+      right: theme.spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+    },
+    iconButton: {
+      width: 44,
+      height: 44,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.mapOverlay,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    titleShell: {
+      flex: 1,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      backgroundColor: theme.colors.mapOverlay,
+    },
+    titleRow: {
+      gap: 6,
+    },
+    titleInput: {
+      color: theme.colors.textPrimary,
+      fontFamily: 'Manrope_600SemiBold',
+      fontSize: 16,
+      lineHeight: 20,
+      paddingVertical: 2,
+    },
+    recenterButton: {
+      position: 'absolute',
+      right: theme.spacing.sm,
+      width: 44,
+      height: 44,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.mapOverlay,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bottomComposer: {
+      position: 'absolute',
+      left: theme.spacing.sm,
+      right: theme.spacing.sm,
+    },
+    composerSurface: {
+      padding: theme.spacing.sm,
+      backgroundColor: theme.colors.mapOverlay,
+    },
+    composerHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.sm,
+    },
+    composerTitle: {
+      marginTop: 4,
+    },
+    searchShell: {
+      flexDirection: 'row',
+      gap: theme.spacing.xs,
+      marginBottom: theme.spacing.xs,
+    },
+    inlineInput: {
+      flex: 1,
+      minHeight: 52,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+      paddingHorizontal: theme.spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+      position: 'relative',
+    },
+    searchInput: {
+      flex: 1,
+      color: theme.colors.textPrimary,
+      fontFamily: 'Manrope_400Regular',
+      fontSize: 15,
+      lineHeight: 20,
+      paddingVertical: 12,
+    },
+    addButton: {
+      minWidth: 96,
+    },
+    suggestionsSurface: {
+      marginBottom: theme.spacing.xs,
+      overflow: 'hidden',
+    },
+    suggestionRow: {
+      minHeight: 64,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    suggestionCopy: {
+      flex: 1,
+      gap: 4,
+      paddingRight: theme.spacing.sm,
+    },
+    pendingRow: {
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      paddingTop: theme.spacing.sm,
+      marginBottom: theme.spacing.sm,
+    },
+    pendingCopy: {
+      gap: 6,
+    },
+    metricRow: {
+      flexDirection: 'row',
+      gap: theme.spacing.xs,
+      marginBottom: theme.spacing.sm,
+    },
+    metricItem: {
+      flex: 1,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      paddingTop: theme.spacing.xs,
+      gap: 6,
+    },
+    statusText: {
+      marginBottom: theme.spacing.sm,
+    },
+    stopList: {
+      maxHeight: 180,
+      marginBottom: theme.spacing.sm,
+      gap: theme.spacing.xs,
+    },
+    stopRow: {
+      minHeight: 64,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      gap: theme.spacing.xs,
+    },
+    stopIndex: {
+      width: 28,
+      height: 28,
+      backgroundColor: theme.colors.surfaceInverse,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stopContent: {
+      flex: 1,
+      gap: 2,
+    },
+    removeButton: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    actionRow: {
+      flexDirection: 'row',
+      gap: theme.spacing.xs,
+    },
+    actionButton: {
+      flex: 1,
+    },
+    stopMarker: {
+      width: 28,
+      height: 28,
+      backgroundColor: theme.colors.surfaceInverse,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.surface,
+    },
+    pendingMarker: {
+      width: 28,
+      height: 28,
+      backgroundColor: theme.colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.surface,
+    },
+  });

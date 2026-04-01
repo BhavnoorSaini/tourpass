@@ -1,71 +1,81 @@
-import { ScrollView, View, Text, Pressable } from "react-native";
-import { useState } from "react";
-import {LinearGradient} from "expo-linear-gradient";
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppHeader } from '@/components/ui/AppHeader';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { AppSurface } from '@/components/ui/AppSurface';
+import { AppText } from '@/components/ui/AppText';
+import { AccentLine } from '@/components/ui/AccentLine';
+import { useAppTheme, useThemedStyles } from '@/providers/AppThemeProvider';
 
-const FAQS = [
-    {
-        question: "How do I reset my password?",
-        answer: "Go to Profile > Settings > Change Password and follow the steps.",
-    },
-    {
-        question: "How do I contact support?",
-        answer: "You can reach support through the Contact Support page in the Help Center.",
-    },
-    {
-        question: "Why is my app not loading?",
-        answer: "Make sure you’re connected to the internet and using the latest version of the app.",
-    },
-];
+const faqs = [
+  {
+    question: 'How do I reset my password?',
+    answer: 'Go to Profile, open Settings, then choose Change Password.',
+  },
+  {
+    question: 'How do I contact support?',
+    answer: 'Use the Contact Support screen inside the Help Center.',
+  },
+  {
+    question: 'Why is the app not loading correctly?',
+    answer: 'Check your network connection and make sure the app is fully up to date.',
+  },
+] as const;
 
 export default function FAQScreen() {
-    const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const styles = useThemedStyles(createStyles);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
 
-    return (
-        <LinearGradient
-            colors={['#0F172A', '#020617', '#000000']}
-            style={{ flex: 1 }}
-        >
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
-            {FAQS.map((item, index) => {
-                const isOpen = openIndex === index;
+  return (
+    <AppScreen contentContainerStyle={styles.screen}>
+      <AppHeader
+        backVisible
+        eyebrow="FAQs"
+        title="Short answers for the questions that repeat most."
+      />
 
-                return (
-                    <View
-                        key={index}
-                        style={{
-                            backgroundColor: "#1C2A44",
-                            borderRadius: 14,
-                            padding: 16,
-                            marginBottom: 12,
-                        }}
-                    >
-                        <Pressable onPress={() => setOpenIndex(isOpen ? null : index)}>
-                            <Text
-                                style={{
-                                    color: "#fff",
-                                    fontSize: 16,
-                                    fontWeight: "600",
-                                }}
-                            >
-                                {item.question}
-                            </Text>
-                        </Pressable>
+      <View style={styles.stack}>
+        {faqs.map((item, index) => {
+          const open = openIndex === index;
 
-                        {isOpen && (
-                            <Text
-                                style={{
-                                    color: "#C7D2FE",
-                                    marginTop: 10,
-                                    lineHeight: 20,
-                                }}
-                            >
-                                {item.answer}
-                            </Text>
-                        )}
-                    </View>
-                );
-            })}
-        </ScrollView>
-        </LinearGradient>
-    );
+          return (
+            <Pressable
+              key={item.question}
+              accessibilityRole="button"
+              onPress={() => setOpenIndex(open ? null : index)}
+            >
+              <AppSurface style={styles.faqCard}>
+                <View style={styles.faqTop}>
+                  <AppText variant="title">{item.question}</AppText>
+                  <AppText variant="mono">{open ? 'Close' : 'Open'}</AppText>
+                </View>
+                {open ? <AppText variant="body">{item.answer}</AppText> : null}
+                <AccentLine active={open} />
+              </AppSurface>
+            </Pressable>
+          );
+        })}
+      </View>
+    </AppScreen>
+  );
 }
+
+const createStyles = (_theme: ReturnType<typeof useAppTheme>['theme']) =>
+  StyleSheet.create({
+    screen: {
+      paddingTop: 16,
+    },
+    stack: {
+      gap: 16,
+    },
+    faqCard: {
+      padding: 16,
+      gap: 12,
+    },
+    faqTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 16,
+    },
+  });

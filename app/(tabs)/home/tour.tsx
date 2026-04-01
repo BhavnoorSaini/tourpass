@@ -3,6 +3,7 @@ import { View, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { MapboxNavigationView } from '@badatgil/expo-mapbox-navigation';
 import { useRoutes } from '@/contexts/RoutesContext';
+import { useAppTheme, useThemedStyles } from '@/providers/AppThemeProvider';
 
 interface NavigationCoordinate {
   latitude: number;
@@ -30,10 +31,11 @@ function parseCoordinates(serializedCoordinates?: string) {
   }
 }
 
-export default function TourNavigation() {
+export default function TourNavigationScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const params = useLocalSearchParams();
+  const styles = useThemedStyles(createStyles);
   const { getRouteById } = useRoutes();
 
   const routeIdParam = typeof params.routeId === 'string' ? params.routeId : undefined;
@@ -61,9 +63,7 @@ export default function TourNavigation() {
 
   const routeTitle =
     selectedRoute?.title ||
-    (titleParam && titleParam.trim().length > 0
-      ? titleParam
-      : 'Custom route');
+    (titleParam && titleParam.trim().length > 0 ? titleParam : 'Custom route');
 
   useLayoutEffect(() => {
     const parent = navigation.getParent();
@@ -73,18 +73,7 @@ export default function TourNavigation() {
 
     return () => {
       parent?.setOptions({
-        tabBarStyle: {
-          position: 'absolute',
-          bottom: 20,
-          elevation: 0,
-          marginHorizontal: 10,
-          height: 58,
-          backgroundColor: '#320e4f',
-          borderRadius: 16,
-          borderTopWidth: 0,
-          shadowColor: '#000',
-          shadowOpacity: 0.3,
-        },
+        tabBarStyle: undefined,
       });
     };
   }, [navigation]);
@@ -94,11 +83,9 @@ export default function TourNavigation() {
       return;
     }
 
-    Alert.alert(
-      'Route Missing',
-      'No valid route coordinates were found for navigation.',
-      [{ text: 'OK', onPress: () => router.back() }],
-    );
+    Alert.alert('Route Missing', 'No valid route coordinates were found for navigation.', [
+      { text: 'OK', onPress: () => router.back() },
+    ]);
   }, [coordinates.length, router]);
 
   if (coordinates.length < 2) {
@@ -120,7 +107,7 @@ export default function TourNavigation() {
         }}
         onFinalDestinationArrival={() => {
           Alert.alert(
-            'Navigation Complete',
+            'Navigation complete',
             `You have arrived at the final stop for ${routeTitle}.`,
             [{ text: 'OK', onPress: () => router.back() }],
           );
@@ -134,11 +121,13 @@ export default function TourNavigation() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  navigation: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>['theme']) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    navigation: {
+      flex: 1,
+    },
+  });

@@ -3,14 +3,19 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Pressable,
   StyleSheet,
-  Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Map from '@/components/map/map';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppSurface } from '@/components/ui/AppSurface';
+import { AppText } from '@/components/ui/AppText';
+import { AccentLine } from '@/components/ui/AccentLine';
 import { useRoutes } from '@/contexts/RoutesContext';
 import {
   createSearchSessionToken,
@@ -20,11 +25,14 @@ import {
   type MapboxSuggestion,
 } from '@/lib/mapbox';
 import type { LngLat, RoutePreview } from '@/types/route';
+import { useAppTheme, useThemedStyles } from '@/providers/AppThemeProvider';
 
-export default function Index() {
+export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { theme } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { routes } = useRoutes();
-
   const sessionTokenRef = useRef(createSearchSessionToken());
 
   const [query, setQuery] = useState('');
@@ -42,7 +50,7 @@ export default function Index() {
     [routes, selectedRouteId],
   );
   const visibleSuggestions = suggestions.slice(0, 6);
-  const shouldShowSuggestions = suggestionsOpen && visibleSuggestions.length > 0;
+  const showSuggestions = suggestionsOpen && visibleSuggestions.length > 0;
 
   useEffect(() => {
     if (!selectedRouteId) {
@@ -50,6 +58,7 @@ export default function Index() {
     }
 
     const routeStillExists = routes.some((route) => route.id === selectedRouteId);
+
     if (!routeStillExists) {
       setSelectedRouteId(null);
     }
@@ -99,7 +108,7 @@ export default function Index() {
       }
     };
 
-    buildRoutePreviews();
+    void buildRoutePreviews();
 
     return () => {
       cancelled = true;
@@ -145,7 +154,7 @@ export default function Index() {
           setSearchLoading(false);
         }
       }
-    }, 280);
+    }, 260);
 
     return () => {
       cancelled = true;
@@ -157,16 +166,6 @@ export default function Index() {
     Keyboard.dismiss();
     setSearchFocused(false);
     setSuggestionsOpen(false);
-  };
-
-  const handleQueryChange = (nextQuery: string) => {
-    setQuery(nextQuery);
-    setSearchFocused(true);
-
-    if (nextQuery.trim().length < 2) {
-      setSuggestions([]);
-      setSuggestionsOpen(false);
-    }
   };
 
   const handleSuggestionPress = async (suggestion: MapboxSuggestion) => {
@@ -213,213 +212,245 @@ export default function Index() {
         onMapPress={collapseSearch}
       />
 
-      <View style={styles.topOverlay}>
-        <View style={styles.searchRow}>
-          <View style={styles.searchInputWrap}>
+      <View style={[styles.topChrome, { top: insets.top + theme.spacing.xs }]}>
+        <AppText variant="eyebrow">Tourpass</AppText>
+
+        <AppSurface style={styles.searchShell}>
+          <View style={styles.searchRow}>
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={searchFocused ? theme.colors.textPrimary : theme.colors.textMuted}
+            />
             <TextInput
               value={query}
-              onChangeText={handleQueryChange}
+              onChangeText={(nextQuery) => {
+                setQuery(nextQuery);
+                setSearchFocused(true);
+
+                if (nextQuery.trim().length < 2) {
+                  setSuggestions([]);
+                  setSuggestionsOpen(false);
+                }
+              }}
               onFocus={() => {
                 setSearchFocused(true);
                 if (query.trim().length >= 2 && suggestions.length > 0) {
                   setSuggestionsOpen(true);
                 }
               }}
-              placeholder="Search places with Mapbox"
-              placeholderTextColor="#64748b"
+              placeholder="Search a place"
+              placeholderTextColor={theme.colors.textMuted}
+              selectionColor={theme.colors.accent}
               style={styles.searchInput}
-              autoCorrect={false}
-              autoCapitalize="none"
             />
-            {(searchLoading || resolvingSelection) && (
-              <ActivityIndicator size="small" color="#2563eb" style={styles.searchSpinner} />
-            )}
+
+            {(searchLoading || resolvingSelection) ? (
+              <ActivityIndicator size="small" color={theme.colors.accent} />
+            ) : null}
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/(tabs)/home/create-route')}
+              style={styles.createButton}
+            >
+              <Ionicons name="add" size={18} color={theme.colors.textPrimary} />
+              <AccentLine active />
+            </Pressable>
           </View>
 
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => router.push('/(tabs)/home/create-route')}
-            activeOpacity={0.9}
-          >
-            <Text style={styles.createButtonText}>＋</Text>
-          </TouchableOpacity>
-        </View>
+          <AccentLine active={searchFocused} />
+        </AppSurface>
 
-        {shouldShowSuggestions && (
-          <View style={styles.suggestionsPanel}>
+        {showSuggestions ? (
+          <AppSurface style={styles.suggestionShell}>
             {visibleSuggestions.map((suggestion, index) => (
-              <TouchableOpacity
+              <Pressable
                 key={suggestion.mapboxId}
+                accessibilityRole="button"
+                onPress={() => {
+                  void handleSuggestionPress(suggestion);
+                }}
                 style={[
                   styles.suggestionRow,
-                  index === visibleSuggestions.length - 1 ? styles.suggestionRowLast : null,
+                  index < visibleSuggestions.length - 1 && {
+                    borderBottomWidth: 1,
+                    borderBottomColor: theme.colors.border,
+                  },
                 ]}
-                onPress={() => handleSuggestionPress(suggestion)}
-                activeOpacity={0.84}
               >
-                <Text style={styles.suggestionTitle}>{suggestion.name}</Text>
-                <Text numberOfLines={1} style={styles.suggestionSubtitle}>
-                  {suggestion.fullAddress}
-                </Text>
-              </TouchableOpacity>
+                <View style={styles.suggestionText}>
+                  <AppText variant="title">{suggestion.name}</AppText>
+                  <AppText variant="caption">{suggestion.fullAddress}</AppText>
+                </View>
+                <Ionicons name="arrow-forward" size={16} color={theme.colors.textMuted} />
+              </Pressable>
             ))}
-          </View>
-        )}
+          </AppSurface>
+        ) : null}
       </View>
 
-      {routePreviews.length > 0 && !selectedRoute && (
-        <View style={styles.helperChip}>
-          <Text style={styles.helperChipText}>Tap a route line on the map to select it</Text>
-        </View>
-      )}
+      <View style={[styles.bottomChrome, { bottom: insets.bottom + theme.spacing.sm }]}>
+        <AppSurface style={styles.bottomPanel}>
+          <View style={styles.bottomHeader}>
+            <View>
+              <AppText variant="label">Workspace</AppText>
+              <AppText variant="sectionTitle" style={styles.bottomTitle}>
+                {selectedRoute ? selectedRoute.title : 'Choose a saved route'}
+              </AppText>
+            </View>
+            <AppText variant="mono">{routes.length} saved</AppText>
+          </View>
 
-      {selectedRoute && (
-        <View style={styles.startPanel}>
-          <Text style={styles.routeTitle}>{selectedRoute.title}</Text>
-          <Text style={styles.routeMeta}>{selectedRoute.stops.length} stops</Text>
-          <TouchableOpacity style={styles.startButton} onPress={handleStartNavigation}>
-            <Text style={styles.startButtonText}>Start Navigation</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          {selectedRoute ? (
+            <>
+              <View style={styles.metricRow}>
+                <View style={styles.metricItem}>
+                  <AppText variant="label">Stops</AppText>
+                  <AppText variant="title">{selectedRoute.stops.length}</AppText>
+                </View>
+                <View style={styles.metricItem}>
+                  <AppText variant="label">Created</AppText>
+                  <AppText variant="title">
+                    {new Date(selectedRoute.createdAt).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </AppText>
+                </View>
+              </View>
+
+              <View style={styles.routeActions}>
+                <AppButton
+                  label="Start walk"
+                  onPress={handleStartNavigation}
+                  style={styles.actionButton}
+                />
+                <AppButton
+                  label="Clear"
+                  variant="secondary"
+                  onPress={() => setSelectedRouteId(null)}
+                  style={styles.actionButton}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <AppText variant="body" style={styles.emptyCopy}>
+                Search the map, preview saved routes, or create a new walk from scratch.
+              </AppText>
+              <AppButton
+                label="Create route"
+                onPress={() => router.push('/(tabs)/home/create-route')}
+                style={styles.singleAction}
+              />
+            </>
+          )}
+        </AppSurface>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  topOverlay: {
-    position: 'absolute',
-    top: 56,
-    left: 16,
-    right: 16,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  searchInputWrap: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.88)',
-    borderRadius: 20,
-    minHeight: 50,
-    justifyContent: 'center',
-    shadowColor: '#020617',
-    shadowOpacity: 0.14,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  searchInput: {
-    paddingLeft: 16,
-    paddingRight: 40,
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#0f172a',
-  },
-  searchSpinner: {
-    position: 'absolute',
-    right: 14,
-  },
-  createButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#2563eb',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#020617',
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  createButtonText: {
-    color: '#ffffff',
-    fontSize: 28,
-    marginTop: -3,
-    fontWeight: '400',
-  },
-  suggestionsPanel: {
-    marginTop: 10,
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    shadowColor: '#020617',
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-    elevation: 5,
-  },
-  suggestionRow: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(148,163,184,0.3)',
-  },
-  suggestionRowLast: {
-    borderBottomWidth: 0,
-  },
-  suggestionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  suggestionSubtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    color: '#64748b',
-  },
-  helperChip: {
-    position: 'absolute',
-    bottom: 122,
-    left: 16,
-    right: 16,
-    borderRadius: 999,
-    backgroundColor: 'rgba(15,23,42,0.82)',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-  },
-  helperChipText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  startPanel: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 92,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    shadowColor: '#020617',
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 6,
-  },
-  routeTitle: {
-    color: '#0f172a',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  routeMeta: {
-    marginTop: 4,
-    color: '#64748b',
-    fontSize: 12,
-  },
-  startButton: {
-    marginTop: 12,
-    borderRadius: 999,
-    backgroundColor: '#0f766e',
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  startButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useAppTheme>['theme']) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    topChrome: {
+      position: 'absolute',
+      left: theme.spacing.sm,
+      right: theme.spacing.sm,
+      gap: theme.spacing.xs,
+    },
+    searchShell: {
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      backgroundColor: theme.colors.mapOverlay,
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+    },
+    searchInput: {
+      flex: 1,
+      color: theme.colors.textPrimary,
+      fontFamily: 'Manrope_400Regular',
+      fontSize: 15,
+      lineHeight: 20,
+      paddingVertical: 10,
+    },
+    createButton: {
+      width: 36,
+      height: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderLeftWidth: 1,
+      borderLeftColor: theme.colors.border,
+      position: 'relative',
+    },
+    suggestionShell: {
+      backgroundColor: theme.colors.mapOverlay,
+      overflow: 'hidden',
+    },
+    suggestionRow: {
+      minHeight: 68,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    suggestionText: {
+      flex: 1,
+      paddingRight: theme.spacing.sm,
+      gap: 4,
+    },
+    bottomChrome: {
+      position: 'absolute',
+      left: theme.spacing.sm,
+      right: theme.spacing.sm,
+    },
+    bottomPanel: {
+      padding: theme.spacing.sm,
+      backgroundColor: theme.colors.mapOverlay,
+    },
+    bottomHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.sm,
+    },
+    bottomTitle: {
+      marginTop: 4,
+    },
+    metricRow: {
+      flexDirection: 'row',
+      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.sm,
+    },
+    metricItem: {
+      flex: 1,
+      paddingTop: theme.spacing.xs,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      gap: 6,
+    },
+    routeActions: {
+      flexDirection: 'row',
+      gap: theme.spacing.xs,
+    },
+    actionButton: {
+      flex: 1,
+    },
+    emptyCopy: {
+      marginBottom: theme.spacing.sm,
+    },
+    singleAction: {
+      alignSelf: 'flex-start',
+      minWidth: 180,
+    },
+  });

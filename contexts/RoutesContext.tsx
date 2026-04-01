@@ -1,4 +1,4 @@
-import { createContext, PropsWithChildren, useContext, useMemo, useState } from 'react';
+import { createContext, PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react';
 import type { StoredRoute } from '@/types/route';
 
 interface RoutesContextValue {
@@ -12,11 +12,14 @@ const RoutesContext = createContext<RoutesContextValue | undefined>(undefined);
 export function RoutesProvider({ children }: PropsWithChildren) {
   const [routes, setRoutes] = useState<StoredRoute[]>([]);
 
-  const addRoute = (route: StoredRoute) => {
+  const addRoute = useCallback((route: StoredRoute) => {
     setRoutes((prev) => [...prev, route]);
-  };
+  }, []);
 
-  const getRouteById = (id: string) => routes.find((route) => route.id === id);
+  const getRouteById = useCallback(
+    (id: string) => routes.find((route) => route.id === id),
+    [routes],
+  );
 
   const value = useMemo(
     () => ({
@@ -24,7 +27,7 @@ export function RoutesProvider({ children }: PropsWithChildren) {
       addRoute,
       getRouteById,
     }),
-    [routes],
+    [addRoute, getRouteById, routes],
   );
 
   return <RoutesContext.Provider value={value}>{children}</RoutesContext.Provider>;

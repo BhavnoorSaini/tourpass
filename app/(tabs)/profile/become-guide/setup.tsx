@@ -1,134 +1,116 @@
-import { useState } from "react";
-import { View, Text, Pressable, TextInput, Alert } from "react-native";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { supabase } from "@/lib/supabase";
-import { LinearGradient } from "expo-linear-gradient";
+import { useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { AppButton } from '@/components/ui/AppButton';
+import { AppHeader } from '@/components/ui/AppHeader';
+import { AppInput } from '@/components/ui/AppInput';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { AppSection } from '@/components/ui/AppSection';
+import { supabase } from '@/lib/supabase';
+import { useAppTheme, useThemedStyles } from '@/providers/AppThemeProvider';
 
-export default function GuideSetup() {
-    const [primaryCity, setPrimaryCity] = useState('');
-    const [languagesSpoken, setLanguagesSpoken] = useState('');
-    const [bio, setBio] = useState('');
-    const [submitting, setSubmitting] = useState(false);
+export default function GuideSetupScreen() {
+  const styles = useThemedStyles(createStyles);
+  const [primaryCity, setPrimaryCity] = useState('');
+  const [languagesSpoken, setLanguagesSpoken] = useState('');
+  const [bio, setBio] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
+  const handleSubmit = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-        if (!user) {
-            Alert.alert('Not Signed In', 'You must be signed in to apply.');
-            return;
-        }
+    if (!user) {
+      Alert.alert('Not Signed In', 'You must be signed in to apply.');
+      return;
+    }
 
-        setSubmitting(true);
+    setSubmitting(true);
 
-        const languagesArray = languagesSpoken
-            .split(',')
-            .map((l) => l.trim())
-            .filter(Boolean);
+    const languagesArray = languagesSpoken
+      .split(',')
+      .map((language) => language.trim())
+      .filter(Boolean);
 
-        const { error: profileError } = await supabase
-            .from('profiles')
-            .update({
-                primary_city: primaryCity.trim() || null,
-                languages_spoken: languagesArray.length > 0 ? languagesArray : null,
-                bio: bio.trim() || null,
-            })
-            .eq('id', user.id);
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        primary_city: primaryCity.trim() || null,
+        languages_spoken: languagesArray.length > 0 ? languagesArray : null,
+        bio: bio.trim() || null,
+      })
+      .eq('id', user.id);
 
-        if (profileError) {
-            setSubmitting(false);
-            Alert.alert('Submission Failed', profileError.message);
-            return;
-        }
+    if (profileError) {
+      setSubmitting(false);
+      Alert.alert('Submission Failed', profileError.message);
+      return;
+    }
 
-        const { error: statusError } = await supabase
-            .rpc('submit_guide_application');
+    const { error: statusError } = await supabase.rpc('submit_guide_application');
 
-        if (statusError) {
-            setSubmitting(false);
-            Alert.alert('Submission Failed', statusError.message);
-            return;
-        }
+    if (statusError) {
+      setSubmitting(false);
+      Alert.alert('Submission Failed', statusError.message);
+      return;
+    }
 
-        setSubmitting(false);
-        router.push('/profile/become-guide/setup_completed');
-    };
+    setSubmitting(false);
+    router.push('/profile/become-guide/setup_completed');
+  };
 
-    return (
-        <LinearGradient
-            colors={['#0F172A', '#020617', '#000000']}
-            style={{ flex: 1, paddingHorizontal: 24, paddingTop: 20 }}
-        >
-            <Pressable
-                onPress={() => router.back()}
-                className="absolute top-14 left-6 z-10"
-            >
-                <Ionicons name="chevron-back" size={28} color="white" />
-            </Pressable>
+  return (
+    <AppScreen contentContainerStyle={styles.screen}>
+      <AppHeader
+        backVisible
+        eyebrow="Guide setup"
+        title="Add the details that help travelers choose you."
+      />
 
-            <View className="mt-28 mb-8">
-                <Text className="text-white text-3xl font-bold">Guide Profile Setup</Text>
-                <Text className="text-white/70 mt-2">Help travelers get to know you better.</Text>
-            </View>
-
-            <View className="gap-6">
-                <View>
-                    <Text className="text-white/80 mb-2">Primary City</Text>
-                    <View className="bg-white/10 border border-white/20 rounded-2xl flex-row items-center px-4 py-4">
-                        <Ionicons name="location-outline" size={20} color="#94A3B8" />
-                        <TextInput
-                            value={primaryCity}
-                            onChangeText={setPrimaryCity}
-                            placeholder="e.g. Paris, France"
-                            placeholderTextColor="#94A3B8"
-                            className="ml-3 text-white flex-1"
-                        />
-                    </View>
-                </View>
-
-                <View>
-                    <Text className="text-white/80 mb-2">Languages Spoken</Text>
-                    <View className="bg-white/10 border border-white/20 rounded-2xl flex-row items-center px-4 py-4">
-                        <Ionicons name="globe-outline" size={20} color="#94A3B8" />
-                        <TextInput
-                            value={languagesSpoken}
-                            onChangeText={setLanguagesSpoken}
-                            placeholder="English, French, Spanish..."
-                            placeholderTextColor="#94A3B8"
-                            className="ml-3 text-white flex-1"
-                        />
-                    </View>
-                </View>
-
-                <View>
-                    <Text className="text-white/80 mb-2">Bio & Expertise</Text>
-                    <View className="bg-white/10 border border-white/20 rounded-2xl px-4 py-4">
-                        <TextInput
-                            value={bio}
-                            onChangeText={setBio}
-                            multiline
-                            numberOfLines={4}
-                            placeholder="Share your story..."
-                            placeholderTextColor="#94A3B8"
-                            className="text-white"
-                            textAlignVertical="top"
-                        />
-                    </View>
-                </View>
-            </View>
-
-            <View className="mt-auto mb-8">
-                <Pressable
-                    onPress={handleSubmit}
-                    disabled={submitting}
-                    className="bg-blue-500 py-4 rounded-2xl items-center"
-                    style={{ opacity: submitting ? 0.6 : 1 }}
-                >
-                    <Text className="text-white text-lg font-semibold">
-                        {submitting ? 'Submitting...' : 'Submit →'}
-                    </Text>
-                </Pressable>
-            </View>
-        </LinearGradient>
-    );
+      <AppSection title="Guide profile" subtitle="Only the information needed for the application">
+        <View style={styles.stack}>
+          <AppInput
+            label="Primary city"
+            value={primaryCity}
+            onChangeText={setPrimaryCity}
+            placeholder="Chicago, Illinois"
+          />
+          <AppInput
+            label="Languages spoken"
+            value={languagesSpoken}
+            onChangeText={setLanguagesSpoken}
+            placeholder="English, Spanish"
+          />
+          <AppInput
+            label="Bio and expertise"
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Tell travelers what you know best."
+            multiline
+          />
+          <AppButton
+            label="Submit application"
+            onPress={handleSubmit}
+            loading={submitting}
+            style={styles.button}
+          />
+        </View>
+      </AppSection>
+    </AppScreen>
+  );
 }
+
+const createStyles = (_theme: ReturnType<typeof useAppTheme>['theme']) =>
+  StyleSheet.create({
+    screen: {
+      paddingTop: 16,
+    },
+    stack: {
+      gap: 16,
+    },
+    button: {
+      alignSelf: 'flex-start',
+      minWidth: 210,
+    },
+  });
