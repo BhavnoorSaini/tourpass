@@ -1,50 +1,89 @@
-# Welcome to your Expo app 👋
+# TourPass
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+TourPass is an Expo + React Native app for building and navigating custom walking tours. It combines Mapbox search, live map interaction, route creation, and turn-by-turn navigation with a Supabase-backed auth and profile flow.
 
-## Get started
+## What the app does
 
-1. Install dependencies
+- Lets users sign in and sign up with email and password.
+- Redirects authenticated users into the main app and unauthenticated users into the sign-in flow.
+- Searches places with Mapbox autocomplete and resolves exact locations on the map.
+- Creates multi-stop walking routes from selected locations.
+- Shows stored routes on an interactive map and lets users start navigation from a selected route.
+- Uses Mapbox navigation for turn-by-turn walking directions.
+- Tracks profile data in Supabase, including guide status and application state.
+- Supports guide onboarding, guide dashboard access, payments, preferences, and help-center screens.
+- Includes map preferences such as style, light preset, and optional 3D mode.
 
-   ```bash
-   npm install
-   ```
+## Tech Stack
 
-2. Start the app
+- Expo Router
+- React Native
+- TypeScript
+- Supabase
+- Mapbox
+- NativeWind
 
-   ```bash
-   npx expo start
-   ```
+## Getting Started
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Install dependencies:
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Run the app:
 
-## Learn more
+```bash
+npx expo run
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Project Structure
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- `app/` app screens and routes
+- `components/` reusable UI pieces
+- `contexts/` route and preference state
+- `providers/` authentication state
+- `lib/` Mapbox and Supabase helpers
+- `assets/` images and branding
 
-## Join the community
+## Features By Area
 
-Join our community of developers creating universal apps.
+### Authentication
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Email/password sign-in and sign-up
+- Automatic session handling
+- Profile row creation in Supabase for new users
+
+### Home and Routing
+
+- Map view with saved routes
+- Place search with debounced Mapbox suggestions
+- Route selection directly from the map
+- Quick access to create a new route
+- Start navigation from a selected route
+
+### Route Creation
+
+- Search and add multiple stops
+- Fetch walking directions between stops
+- Preview route options before saving
+- Store routes in app state for later use
+
+### Navigation
+
+- Walking navigation through Mapbox
+- Waypoint and destination arrival handling
+- Navigation cancellation and error handling
+
+### Profile and Guide Flow
+
+- User profile screen with guide-related status
+- Become-a-guide application flow
+- Guide dashboard entry point
+- Payments, preferences, and help center screens
+
+## Notes
+
+- Mapbox access depends on your configured environment variables.
+- Supabase powers authentication and profile data.
+- The app uses file-based routing through Expo Router.

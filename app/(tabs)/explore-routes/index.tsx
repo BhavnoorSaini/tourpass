@@ -3,13 +3,17 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/constants/theme';
+import { typography } from '@/constants/typography';
+import { radius, spacing } from '@/constants/spacing';
 
 interface RouteRow {
   id: string;
@@ -23,161 +27,159 @@ interface RouteRow {
     durationSeconds: number;
     distanceMeters: number;
   };
-  profiles: {
-    first_name: string | null;
-    last_name: string | null;
-  }[] | null;
+  profiles: { first_name: string | null; last_name: string | null }[] | null;
 }
 
-function formatDistance(meters: number) {
+function fmt(meters: number) {
   const km = meters / 1000;
   return km >= 10 ? `${km.toFixed(0)} km` : `${km.toFixed(1)} km`;
 }
-
-function formatDuration(seconds: number) {
+function fmtDur(seconds: number) {
   const total = Math.max(1, Math.round(seconds / 60));
-  const hours = Math.floor(total / 60);
-  const minutes = total % 60;
-  if (!hours) return `${total} min`;
-  if (!minutes) return `${hours} hr`;
-  return `${hours} hr ${minutes} min`;
+  const h = Math.floor(total / 60), m = total % 60;
+  if (!h) return `${total} min`;
+  if (!m) return `${h} hr`;
+  return `${h} hr ${m} min`;
 }
 
 function RouteCard({ route, onPress }: { route: RouteRow; onPress: () => void }) {
+  const theme = useTheme();
+  const [pressed, setPressed] = useState(false);
   const stopCount = route.route_data?.stops?.length ?? 0;
-  const duration = route.route_data?.durationSeconds;
-  const distance = route.route_data?.distanceMeters;
+  const dur = route.route_data?.durationSeconds;
+  const dist = route.route_data?.distanceMeters;
   const guideFirst = route.profiles?.[0]?.first_name ?? '';
   const guideLast = route.profiles?.[0]?.last_name ?? '';
-  const guideName = [guideFirst, guideLast].filter(Boolean).join(' ') || 'Unknown Guide';
+  const guideName = [guideFirst, guideLast].filter(Boolean).join(' ') || 'Local Guide';
+
+  const metas = [
+    dur != null ? fmtDur(dur) : null,
+    dist != null ? fmt(dist) : null,
+    `${stopCount} stop${stopCount !== 1 ? 's' : ''}`,
+  ].filter(Boolean);
+
+  // If title is missing or suspiciously long (like an address), we prioritize readability
+  const hasValidTitle = route.title && route.title.trim().length > 0 && !route.title.includes(',');
+  const displayTitle = hasValidTitle ? route.title : (route.city?.split(',')[0] || 'Local Tour');
+  
+  // For the sub-label, use the full city/area
+  const displayCity = route.city || 'Various Locations';
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle} numberOfLines={1}>{route.title}</Text>
-        <View style={styles.cityBadge}>
-          <Text style={styles.cityBadgeText} numberOfLines={1}>{route.city}</Text>
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.surface,
+          opacity: pressed ? 0.92 : 1,
+          shadowColor: theme.accent,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+        },
+      ]}
+    >
+      <View style={styles.cardTop}>
+        <View style={{ flex: 1 }}>
+          <Text style={[typography.headingM, { color: theme.text }]} numberOfLines={2}>
+            {displayTitle}
+          </Text>
+          <Text style={[typography.labelS, { color: theme.textSecondary, marginTop: 4 }]} numberOfLines={1}>
+            {displayCity}
+          </Text>
         </View>
       </View>
 
       <View style={styles.metaRow}>
-        {duration != null && (
-          <View style={styles.metaPill}>
-            <Text style={styles.metaPillText}>{formatDuration(duration)}</Text>
+        {metas.map((m, i) => (
+          <View key={m} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[typography.bodyS, { color: theme.textSecondary }]}>
+              {m}
+            </Text>
+            {i < metas.length - 1 && <View style={[styles.dot, { backgroundColor: theme.textSecondary, opacity: 0.3 }]} />}
           </View>
-        )}
-        {distance != null && (
-          <View style={styles.metaPill}>
-            <Text style={styles.metaPillText}>{formatDistance(distance)}</Text>
-          </View>
-        )}
-        <View style={styles.metaPill}>
-          <Text style={styles.metaPillText}>{stopCount} stop{stopCount !== 1 ? 's' : ''}</Text>
-        </View>
+        ))}
       </View>
 
       {route.description ? (
-        <Text style={styles.description} numberOfLines={2}>{route.description}</Text>
+        <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: spacing.xs }]} numberOfLines={2}>
+          {route.description}
+        </Text>
       ) : null}
 
-      <Text style={styles.guideText}>By {guideName}</Text>
-    </TouchableOpacity>
+      <View style={styles.cardFooter}>
+        <Text style={[typography.labelS, { color: theme.accent, fontSize: 10, letterSpacing: 1 }]}>
+          {guideName.toUpperCase()}
+        </Text>
+        <Ionicons name="chevron-forward" size={14} color={theme.textTertiary} />
+      </View>
+    </Pressable>
   );
 }
 
 export default function ExploreRoutesScreen() {
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchRoutes = async () => {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
+    const fetch = async () => {
+      setLoading(true); setError(null);
+      const { data, error: err } = await supabase
         .from('routes')
         .select('id, title, description, city, is_public, created_at, route_data, profiles(first_name, last_name)')
         .eq('is_public', true)
         .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        setError(fetchError.message);
-      } else {
-        setRoutes((data as unknown as RouteRow[]) ?? []);
-      }
-
+      if (err) setError(err.message);
+      else setRoutes((data as unknown as RouteRow[]) ?? []);
       setLoading(false);
     };
-
-    fetchRoutes();
+    fetch();
   }, []);
 
   const handleCardPress = (route: RouteRow) => {
-    Alert.alert(
-      'Request This Route',
-      `Would you like to request "${route.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Request',
-          onPress: () => submitRequest(route),
-        },
-      ],
-    );
+    Alert.alert(`Request "${route.title}"?`, 'This will notify the guide.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Request', onPress: () => submitRequest(route) },
+    ]);
   };
 
   const submitRequest = async (route: RouteRow) => {
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      Alert.alert('Not Signed In', 'You must be signed in to request a tour.');
-      return;
-    }
-
-    const { error: insertError } = await supabase
-      .from('tour_requests')
-      .insert({
-        tourist_id: user.id,
-        route_id: route.id,
-        status: 'pending',
-      });
-
-    if (insertError) {
-      Alert.alert('Request Failed', insertError.message);
-      return;
-    }
-
-    Alert.alert('Request Sent', `Your request for "${route.title}" has been submitted.`);
+    if (!user) { Alert.alert('Sign in', 'Please sign in first.'); return; }
+    const { error: err } = await supabase.from('tour_requests').insert({ tourist_id: user.id, route_id: route.id, status: 'pending' });
+    if (err) { Alert.alert('Failed', err.message); return; }
+    Alert.alert('Sent', 'Request submitted!');
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Explore Routes</Text>
-        <Text style={styles.headerSubtitle}>Discover tours created by guides</Text>
+        <Text style={[typography.displayL, { color: theme.text }]}>Explore</Text>
       </View>
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#320e4f" />
+          <ActivityIndicator color={theme.accent} />
         </View>
       ) : error ? (
         <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[typography.bodyM, { color: theme.destructive }]}>{error}</Text>
         </View>
       ) : routes.length === 0 ? (
         <View style={styles.centered}>
-          <Text style={styles.emptyText}>No routes published yet.</Text>
+          <Text style={[typography.bodyM, { color: theme.textSecondary }]}>No routes found.</Text>
         </View>
       ) : (
         <FlatList
           data={routes}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <RouteCard route={item} onPress={() => handleCardPress(item)} />
-          )}
+          renderItem={({ item }) => <RouteCard route={item} onPress={() => handleCardPress(item)} />}
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 100 }]}
           showsVerticalScrollIndicator={false}
         />
@@ -187,108 +189,43 @@ export default function ExploreRoutesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
+  root: { flex: 1 },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
-    backgroundColor: '#f8fafc',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  list: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorText: {
-    color: '#dc2626',
-    fontSize: 14,
-    textAlign: 'center',
-    paddingHorizontal: 24,
-  },
-  emptyText: {
-    color: '#94a3b8',
-    fontSize: 15,
-  },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  list: { paddingHorizontal: spacing.lg },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    marginBottom: spacing.lg,
+    elevation: 4,
   },
-  cardHeader: {
+  cardTop: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 10,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
-    flex: 1,
-  },
-  cityBadge: {
-    backgroundColor: '#ede9fe',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    maxWidth: 140,
-  },
-  cityBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6d28d9',
+    marginBottom: spacing.sm,
   },
   metaRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
-  metaPill: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  dot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    marginHorizontal: spacing.sm,
   },
-  metaPillText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#475569',
-  },
-  description: {
-    fontSize: 13,
-    color: '#64748b',
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  guideText: {
-    fontSize: 12,
-    color: '#94a3b8',
-    fontWeight: '500',
-    marginTop: 4,
+  cardFooter: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 });
