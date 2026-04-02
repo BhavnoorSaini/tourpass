@@ -1,83 +1,121 @@
-import { View, Text, Pressable } from "react-native";
+import React from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import {LinearGradient} from "expo-linear-gradient";
+import { useTheme } from "@/constants/theme";
+import { typography } from "@/constants/typography";
+import { radius, spacing } from "@/constants/spacing";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { PressableButton } from "@/components/ui/PressableButton";
 
 export default function GuideIntro() {
     const router = useRouter();
+    const theme = useTheme();
+    const insets = useSafeAreaInsets();
+
+    const Feature = ({ icon, title, sub, color }: { icon: any, title: string, sub: string, color: string }) => (
+        <View style={styles.feature}>
+            <View style={[styles.iconBox, { backgroundColor: `${color}15` }]}>
+                <Ionicons name={icon} size={22} color={color} />
+            </View>
+            <View style={{ flex: 1 }}>
+                <Text style={[typography.headingS, { color: theme.text }]}>{title}</Text>
+                <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 2 }]}>{sub}</Text>
+            </View>
+        </View>
+    );
 
     return (
-        <LinearGradient
-            colors={['#0F172A', '#020617', '#000000']}
-            style={{ flex: 1, paddingHorizontal: 24, paddingTop: 40 }}
-        >
-            {/* Back button */}
+        <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
             <Pressable
                 onPress={() => router.back()}
-                className="mt-14 w-12 h-12 justify-center"
+                style={[styles.closeBtn, { backgroundColor: theme.surface }]}
             >
-                <Ionicons name="close" size={28} color="white" />
+                <Ionicons name="close" size={20} color={theme.text} />
             </Pressable>
 
-            {/* Header */}
-            <View className="mt-10 mb-10">
-                <Text className="text-white text-4xl font-bold leading-tight">
-                    Turn your local{"\n"}knowledge into{"\n"}income
-                </Text>
-
-                <Text className="text-white/70 text-base mt-4">
-                    Join our community of expert local guides.
-                </Text>
-            </View>
-
-            {/* Features List */}
-            <View className="gap-8">
-                <View className="flex-row gap-4">
-                    <View className="w-12 h-12 rounded-xl bg-blue-500/20 items-center justify-center">
-                        <Ionicons name="calendar-outline" size={24} color="#60A5FA" />
-                    </View>
-                    <View className="flex-1">
-                        <Text className="text-white text-lg font-semibold">Earn on your schedule</Text>
-                        <Text className="text-white/70 mt-1">You choose when and how often you host tours.</Text>
-                    </View>
-                </View>
-
-                <View className="flex-row gap-4">
-                    <View className="w-12 h-12 rounded-xl bg-emerald-500/20 items-center justify-center">
-                        <Ionicons name="map-outline" size={24} color="#34D399" />
-                    </View>
-                    <View className="flex-1">
-                        <Text className="text-white text-lg font-semibold">Share local secrets</Text>
-                        <Text className="text-white/70 mt-1">Show travelers hidden gems only locals know.</Text>
-                    </View>
-                </View>
-
-                <View className="flex-row gap-4">
-                    <View className="w-12 h-12 rounded-xl bg-orange-500/20 items-center justify-center">
-                        <Ionicons name="cash-outline" size={24} color="#FB923C" />
-                    </View>
-                    <View className="flex-1">
-                        <Text className="text-white text-lg font-semibold">Fast payouts</Text>
-                        <Text className="text-white/70 mt-1">Get paid quickly after every completed tour.</Text>
-                    </View>
-                </View>
-            </View>
-
-            {/* CTA */}
-            <View className="mt-auto mb-10">
-                <Pressable
-                    onPress={() => router.push("/profile/become-guide/setup")}
-                    className="bg-blue-500 py-4 rounded-2xl items-center"
-                >
-                    <Text className="text-white text-lg font-semibold">
-                        Start Application →
+            <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+                <View style={styles.header}>
+                    <Text style={[typography.displayM, { color: theme.text }]}>
+                        Host your local knowledge
                     </Text>
-                </Pressable>
+                    <Text style={[typography.bodyM, { color: theme.textSecondary, marginTop: spacing.sm }]}>
+                        Join our community of expert local guides and earn on your own terms.
+                    </Text>
+                </View>
 
-                <Text className="text-white/50 text-center mt-3 text-sm">
-                    Takes less than 5 minutes to get started
-                </Text>
-            </View>
-        </LinearGradient>
+                <View style={styles.features}>
+                    <Feature 
+                        icon="calendar-outline" 
+                        title="Your schedule" 
+                        sub="Choose exactly when and how often you host." 
+                        color="#60A5FA" 
+                    />
+                    <Feature 
+                        icon="map-outline" 
+                        title="Local secrets" 
+                        sub="Share the hidden gems only locals know about." 
+                        color="#34D399" 
+                    />
+                    <Feature 
+                        icon="cash-outline" 
+                        title="Fast payouts" 
+                        sub="Get paid automatically after every completed tour." 
+                        color="#FB923C" 
+                    />
+                </View>
+
+                <View style={styles.footer}>
+                    <PressableButton 
+                        label="Start Application" 
+                        onPress={() => router.push("/profile/become-guide/setup")} 
+                    />
+                    <Text style={[typography.bodyS, { color: theme.textTertiary, textAlign: 'center', marginTop: spacing.md }]}>
+                        Application takes less than 5 minutes
+                    </Text>
+                </View>
+            </ScrollView>
+        </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: { flex: 1 },
+    closeBtn: {
+        position: 'absolute',
+        top: spacing.lg,
+        left: spacing.lg,
+        width: 36,
+        height: 36,
+        borderRadius: radius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+    },
+    scroll: {
+        paddingHorizontal: spacing.xl,
+        paddingTop: 80,
+        paddingBottom: spacing.xxl,
+    },
+    header: {
+        marginBottom: spacing.xxl,
+    },
+    features: {
+        gap: spacing.xl,
+    },
+    feature: {
+        flexDirection: 'row',
+        gap: spacing.md,
+        alignItems: 'flex-start',
+    },
+    iconBox: {
+        width: 44,
+        height: 44,
+        borderRadius: radius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    footer: {
+        marginTop: 64,
+    }
+});

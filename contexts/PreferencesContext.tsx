@@ -21,8 +21,8 @@ interface PreferencesProviderProps {
 
 export const PreferencesProvider = ({ children }: PreferencesProviderProps) => {
     const [mapStyle, setMapStyle] = useState<string>('mapbox://styles/mapbox/standard');
-    const [lightPreset, setLightPreset] = useState<'day' | 'night' | 'dusk' | 'dawn'>('day');
-    const [is3DEnabled, setIs3DEnabled] = useState<boolean>(false);
+    const [lightPreset, setLightPreset] = useState<'day' | 'night' | 'dusk' | 'dawn'>('dusk');
+    const [is3DEnabled, setIs3DEnabled] = useState<boolean>(true);
     const isStandardMapStyle = mapStyle === 'mapbox://styles/mapbox/standard';
     const isDarkMapMode = isStandardMapStyle && (lightPreset === 'night' || lightPreset === 'dusk');
 

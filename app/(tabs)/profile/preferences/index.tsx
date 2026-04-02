@@ -1,202 +1,165 @@
-import React from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { usePreferences } from '../../../../contexts/PreferencesContext';
+import React, { useState } from 'react';
+import { View, Text, Switch, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePreferences } from '@/contexts/PreferencesContext';
+import { useTheme } from '@/constants/theme';
+import { typography } from '@/constants/typography';
+import { radius, spacing } from '@/constants/spacing';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 
-interface MapTypeButtonProps {
-    label: string;
-    value: 'standard' | 'satellite' | 'hybrid';
+interface SegmentButtonProps {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  disabled?: boolean;
 }
 
-interface LightPresetButtonProps {
-    label: string;
-    value: 'day' | 'night' | 'dusk' | 'dawn';
+function SegmentButton({ label, active, onPress, disabled }: SegmentButtonProps) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[
+        styles.segmentButton,
+        active && { backgroundColor: theme.background },
+        disabled && { opacity: 0.5 }
+      ]}
+    >
+      <Text style={[
+        typography.labelS,
+        { color: active ? theme.text : theme.textSecondary }
+      ]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
 }
 
 export default function PreferencesScreen() {
-    const {
-        mapStyle,
-        changeMapStyle,
-        lightPreset,
-        isStandardMapStyle,
-        changeLightPreset,
-        is3DEnabled,
-        setIs3DEnabled
-    } = usePreferences();
+  const router = useRouter();
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const {
+    mapStyle,
+    changeMapStyle,
+    lightPreset,
+    isStandardMapStyle,
+    changeLightPreset,
+    is3DEnabled,
+    setIs3DEnabled
+  } = usePreferences();
 
-    const getActiveType = (url: string) => {
-        if (url.includes('satellite-streets')) return 'hybrid';
-        if (url.includes('satellite')) return 'satellite';
-        return 'standard';
-    };
+  const getActiveType = (url: string) => {
+    if (url.includes('satellite-streets')) return 'hybrid';
+    if (url.includes('satellite')) return 'satellite';
+    return 'standard';
+  };
 
-    const currentType = getActiveType(mapStyle);
+  const currentType = getActiveType(mapStyle);
 
-    const MapTypeButton = ({ label, value }: MapTypeButtonProps) => (
-        <TouchableOpacity
-            style={[styles.segmentButton, currentType === value && styles.activeSegment]}
-            onPress={() => changeMapStyle(value)}
-        >
-            <Text style={[styles.segmentText, currentType === value && styles.activeSegmentText]}>
-                {label}
-            </Text>
-        </TouchableOpacity>
-    );
+  return (
+    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+      <ScreenHeader title="Preferences" onBack={() => router.back()} />
 
-    const LightPresetButton = ({ label, value }: LightPresetButtonProps) => (
-        <TouchableOpacity
-            style={[styles.segmentButton, lightPreset === value && styles.activeSegment]}
-            onPress={() => {
-                if (isStandardMapStyle) {
-                    changeLightPreset(value);
-                }
-            }}
-            activeOpacity={isStandardMapStyle ? 0.2 : 1}
-        >
-            <Text style={[styles.segmentText, lightPreset === value && styles.activeSegmentText]}>
-                {label}
-            </Text>
-        </TouchableOpacity>
-    );
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}>
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <Stack.Screen options={{
-                headerStyle: { backgroundColor: '#0C1A30' },
-                headerTintColor: '#FFFFFF',
-                headerTitle: "Preferences",
-                headerShadowVisible: false
-            }} />
+        <View style={styles.section}>
+          <Text style={[typography.labelS, styles.sectionLabel, { color: theme.textSecondary }]}>
+            Map Appearance
+          </Text>
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={[typography.bodyM, { color: theme.text }]}>Style</Text>
+                <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 2 }]}>
+                  Satellite or vector
+                </Text>
+              </View>
+              <View style={[styles.segmentContainer, { backgroundColor: theme.surfaceRaised }]}>
+                <SegmentButton label="Std" active={currentType === 'standard'} onPress={() => changeMapStyle('standard')} />
+                <SegmentButton label="Sat" active={currentType === 'satellite'} onPress={() => changeMapStyle('satellite')} />
+                <SegmentButton label="Hyb" active={currentType === 'hybrid'} onPress={() => changeMapStyle('hybrid')} />
+              </View>
+            </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={[styles.divider, { backgroundColor: theme.background }]} />
 
-                <Text style={styles.sectionHeader}>MAP DISPLAY</Text>
-                <View style={styles.card}>
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={[typography.bodyM, { color: isStandardMapStyle ? theme.text : theme.textSecondary }]}>
+                  Lighting
+                </Text>
+              </View>
+              <View style={[styles.segmentContainer, { backgroundColor: theme.surfaceRaised, opacity: isStandardMapStyle ? 1 : 0.5 }]}>
+                <SegmentButton label="Day" active={lightPreset === 'day'} onPress={() => changeLightPreset('day')} disabled={!isStandardMapStyle} />
+                <SegmentButton label="Dusk" active={lightPreset === 'dusk'} onPress={() => changeLightPreset('dusk')} disabled={!isStandardMapStyle} />
+                <SegmentButton label="Night" active={lightPreset === 'night'} onPress={() => changeLightPreset('night')} disabled={!isStandardMapStyle} />
+              </View>
+            </View>
 
-                    <Text style={styles.label}>Map Style</Text>
-                    <Text style={styles.subLabel}>Choose the map look you want for browsing and route building.</Text>
-                    <View style={styles.segmentContainer}>
-                        <MapTypeButton label="Standard" value="standard" />
-                        <MapTypeButton label="Satellite" value="satellite" />
-                        <MapTypeButton label="Hybrid" value="hybrid" />
-                    </View>
+            <View style={[styles.divider, { backgroundColor: theme.background }]} />
 
-                    <View style={styles.divider} />
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={[typography.bodyM, { color: isStandardMapStyle ? theme.text : theme.textSecondary }]}>
+                  3D Buildings
+                </Text>
+              </View>
+              <Switch
+                value={is3DEnabled}
+                onValueChange={setIs3DEnabled}
+                disabled={!isStandardMapStyle}
+                trackColor={{ false: theme.surfaceRaised, true: theme.accent }}
+                ios_backgroundColor={theme.surfaceRaised}
+              />
+            </View>
+          </View>
+        </View>
 
-                    <Text style={[styles.label, !isStandardMapStyle && styles.disabledSection]}>Map Lighting</Text>
-                    <Text style={[styles.subLabel, !isStandardMapStyle && styles.disabledSection]}>
-                        Available on the standard map only.
-                    </Text>
-                    <View style={[styles.segmentContainer, !isStandardMapStyle && styles.disabledSection]}>
-                        <LightPresetButton label="Day" value="day" />
-                        <LightPresetButton label="Dawn" value="dawn" />
-                        <LightPresetButton label="Dusk" value="dusk" />
-                        <LightPresetButton label="Night" value="night" />
-                    </View>
-
-                    <View style={styles.divider} />
-
-                    <View style={styles.row}>
-                        <View>
-                            <Text style={[styles.label, !isStandardMapStyle && styles.disabledSection]}>3D Buildings</Text>
-                            <Text style={[styles.subLabel, !isStandardMapStyle && styles.disabledSection]}>
-                                Available on the standard map only.
-                            </Text>
-                        </View>
-                        <Switch
-                            value={is3DEnabled}
-                            onValueChange={setIs3DEnabled}
-                            disabled={!isStandardMapStyle}
-                            trackColor={{ false: '#263B5E', true: '#745BFF' }}
-                            thumbColor={'#FFFFFF'}
-                        />
-                    </View>
-
-                </View>
-
-            </ScrollView>
-        </SafeAreaView>
-    );
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0C1A30',
-    },
-    scrollContent: {
-        padding: 16,
-    },
-    sectionHeader: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#637A9F',
-        marginBottom: 8,
-        marginLeft: 12,
-        marginTop: 16,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    card: {
-        backgroundColor: '#203250',
-        borderRadius: 16,
-        padding: 16,
-        overflow: 'hidden',
-    },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 8,
-    },
-    label: {
-        fontSize: 17,
-        fontWeight: '500',
-        color: '#FFFFFF',
-    },
-    subLabel: {
-        fontSize: 13,
-        color: '#A2B4CE',
-        marginTop: 4,
-        marginBottom: 10,
-    },
-    divider: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: '#354A6E',
-        marginVertical: 14,
-    },
-    segmentContainer: {
-        flexDirection: 'row',
-        backgroundColor: '#0C1A30',
-        borderRadius: 10,
-        padding: 4,
-        marginTop: 6,
-    },
-    segmentButton: {
-        flex: 1,
-        paddingVertical: 8,
-        alignItems: 'center',
-        borderRadius: 8,
-    },
-    activeSegment: {
-        backgroundColor: '#2D446B',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 3,
-    },
-    segmentText: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: '#637A9F',
-    },
-    activeSegmentText: {
-        color: '#FFFFFF',
-        fontWeight: '600',
-    },
-    disabledSection: {
-        opacity: 0.4,
-    },
+  container: {
+    flex: 1,
+  },
+  section: {
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  sectionLabel: {
+    marginLeft: spacing.sm,
+    marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+  },
+  card: {
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+  },
+  segmentContainer: {
+    flexDirection: 'row',
+    borderRadius: radius.md,
+    padding: 2,
+    gap: 2,
+  },
+  segmentButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.sm,
+    minWidth: 48,
+    alignItems: 'center',
+  },
 });
