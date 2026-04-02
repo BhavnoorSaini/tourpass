@@ -1,347 +1,268 @@
-import { Text, View, Pressable, Alert, Image } from "react-native";
-import { useAuth } from "@/providers/AuthProvider";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router"; // router is imported here
-import { LinearGradient } from "expo-linear-gradient";
-
-
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
+import { useTheme } from '@/constants/theme';
+import { typography } from '@/constants/typography';
+import { radius, spacing } from '@/constants/spacing';
+import { PressableButton } from '@/components/ui/PressableButton';
 
 interface ProfileRow {
-    first_name: string | null;
-    last_name: string | null;
-    is_guide: boolean | null; //check if user is a guide or not
-    application_status: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  is_guide: boolean | null;
+  application_status: string | null;
 }
 
-export default function Index() {
-    const { user } = useAuth();
-    const [profile, setProfile] = useState<ProfileRow | null>(null);
-    const [loadingProfile, setLoadingProfile] = useState(true);
-    const [profileError, setProfileError] = useState<string | null>(null);
-    const isGuide = profile?.is_guide;
-    const applicationStatus = profile?.application_status;
+function NavRow({ icon, label, onPress, isLast = false }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; onPress: () => void; isLast?: boolean }) {
+  const theme = useTheme();
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[
+        styles.navRow,
+        {
+          backgroundColor: pressed ? theme.surfaceRaised : 'transparent',
+          borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+          borderBottomColor: theme.background,
+        },
+      ]}
+    >
+      <Ionicons name={icon} size={18} color={theme.text} />
+      <Text style={[typography.bodyM, { color: theme.text, flex: 1, marginLeft: spacing.md }]}>
+        {label}
+      </Text>
+      <Ionicons name="chevron-forward" size={14} color={theme.textSecondary} />
+    </Pressable>
+  );
+}
 
-    useEffect(() => {
-        if (!user) return;
+export default function ProfileScreen() {
+  const { user } = useAuth();
+  const theme = useTheme();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [loading, setLoading] = useState(true);
 
-        const fetchProfile = async () => {
-            setLoadingProfile(true);
-            setProfileError(null);
-            const { data, error } = await supabase
-                .from("profiles")
-                .select("first_name, last_name, is_guide, application_status")
-                .eq("id", user.id)
-                .single();
+  useEffect(() => {
+    if (!user) return;
+    const fetch = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, is_guide, application_status')
+        .eq('id', user.id)
+        .single();
+      if (!error) setProfile(data);
+      setLoading(false);
+    };
+    fetch();
+  }, [user]);
 
-            if (error) {
-                setProfileError(error.message);
-                setProfile(null);
-            } else {
-                setProfile(data);
-            }
-            setLoadingProfile(false);
-        };
+  const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'User';
+  const initials = [profile?.first_name?.[0], profile?.last_name?.[0]].filter(Boolean).join('').toUpperCase() || '?';
 
-        fetchProfile();
-    }, [user]);
-
-
-
+  if (loading) {
     return (
-        <LinearGradient
-            colors={['#0F172A', '#020617', '#000000']}
-            style={{ flex: 1 }}
-        >
-            <View className="flex-1 items-center">
-            {/* Settings button */}
-            <Pressable
-                className="absolute top-14 right-6 z-10"
-                onPress={() => router.push("/profile/settings")}
-            >
-                <Ionicons name="settings-outline" size={26} color="white" />
-            </Pressable>
-
-            <View className="items-center mt-20">
-                {/* Avatar wrapper */}
-                <View className="relative">
-                    <Image
-                        source={{
-                            uri:
-                                "https://ui-avatars.com/api/?name=" +
-                                (profile?.first_name ?? "User"),
-                        }}
-                        className="w-28 h-28 rounded-full border-4 border-white/30"
-                    />
-                    {/* Camera button */}
-                    <Pressable
-                        onPress={() =>
-                            Alert.alert("Change Photo", "Upload profile picture")
-                        }
-                        className="absolute bottom-0 right-0 bg-indigo-500 w-9 h-9 rounded-full items-center justify-center border-2 border-[#0B1D3A]"
-                    >
-                        <Ionicons name="camera-outline" size={18} color="white" />
-                    </Pressable>
-                </View>
-
-                <Text className="text-white text-xl font-semibold mt-4">
-                    {[profile?.first_name, profile?.last_name]
-                        .filter(Boolean)
-                        .join(" ") || "Unknown User"}
-                </Text>
-            </View>
-
-            <View
-                style={{
-                    marginTop: 24,
-                    borderRadius: 20,
-                    paddingHorizontal: 24,
-                    paddingVertical: 16,
-                    width: "90%",
-                    backgroundColor: "rgba(255,255,255,0.12)",
-                }}
-            >
-                <View className="flex-row justify-between items-center">
-                    <View className="items-center flex-1">
-                        <Text className="text-white text-2xl font-bold">12</Text>
-                        <Text className="text-white/70 text-sm">Tours Taken</Text>
-                    </View>
-
-                    <View className="w-px h-10 bg-white/20" />
-
-                    <View className="items-center flex-1">
-                        <Text className="text-white text-2xl font-bold">5</Text>
-                        <Text className="text-white/70 text-sm">Cities Visited</Text>
-                    </View>
-                </View>
-            </View>
-
-
-                {!isGuide && applicationStatus === "none" && (
-                    <Pressable
-                        onPress={() => router.push("/profile/become-guide")}
-                        className="mt-4 w-[90%]"
-                    >
-                        <View
-                            style={{
-                                marginTop: 24,
-                                borderRadius: 20,
-                                paddingHorizontal: 24,
-                                paddingVertical: 20,
-                                width: "100%",
-                                backgroundColor: "#12305C",
-                            }}
-                        >
-                            <View className="flex-row items-center justify-between">
-                                <View>
-                                    <Text className="text-white text-lg font-semibold">
-                                        Become a Tour Guide
-                                    </Text>
-                                    <Text className="text-white/80 text-sm mt-1">
-                                        Share your city with others
-                                    </Text>
-                                </View>
-                                <Text className="text-white text-xl">→</Text>
-                            </View>
-                        </View>
-                    </Pressable>
-                )}
-
-                {!isGuide && applicationStatus === "pending" && (
-                    <View
-                        style={{
-                            marginTop: 24,
-                            borderRadius: 20,
-                            paddingHorizontal: 24,
-                            paddingVertical: 20,
-                            width: "90%",
-                            backgroundColor: "#444",
-                        }}
-                    >
-                        <Text className="text-white text-lg font-semibold">
-                            Application Under Review
-                        </Text>
-                        <Text className="text-white/70 text-sm mt-1">
-                            We will notify you once approved.
-                        </Text>
-                    </View>
-                )}
-
-                {isGuide && (
-                    <Pressable
-                        onPress={() => router.push("/profile/guide-dashboard")}
-                        className="mt-4 w-[90%]"
-                    >
-                        <View
-                            style={{
-                                marginTop: 24,
-                                borderRadius: 20,
-                                paddingHorizontal: 24,
-                                paddingVertical: 20,
-                                width: "100%",
-                                backgroundColor: "#12305C",
-                            }}
-                        >
-                            <Text className="text-white text-lg font-semibold">
-                                Guide Dashboard
-                            </Text>
-                            {/* Placeholder stats GOTTA replace with real data from database LATER same goes for the guide-dashboard file */}
-                            <View className="flex-row justify-between mt-4">
-                                <View>
-                                    <Text className="text-white text-lg font-bold">$0</Text>
-                                    <Text className="text-white/70 text-sm">
-                                        Total Earnings
-                                    </Text>
-                                </View>
-
-                                <View>
-                                    <Text className="text-white text-lg font-bold">0</Text>
-                                    <Text className="text-white/70 text-sm">
-                                        Active Tours
-                                    </Text>
-                                </View>
-
-                                <View>
-                                    <Text className="text-white text-lg font-bold">0</Text>
-                                    <Text className="text-white/70 text-sm">
-                                        Completed
-                                    </Text>
-                                </View>
-                            </View>
-                        </View>
-                    </Pressable>
-                )}
-
-
-
-
-            {/*<Pressable*/}
-            {/*    onPress={() => router.push("/profile/become-guide")}*/}
-            {/*    className="mt-4 w-[90%]"*/}
-            {/*>*/}
-            {/*    <View*/}
-            {/*        style={{*/}
-            {/*            marginTop: 24,*/}
-            {/*            borderRadius: 20,*/}
-            {/*            paddingHorizontal: 24,*/}
-            {/*            paddingVertical: 20,*/}
-            {/*            width: "100%",*/}
-            {/*            backgroundColor: '#12305C',*/}
-            {/*        }}*/}
-            {/*    >*/}
-            {/*        <View className="flex-row items-center justify-between">*/}
-            {/*            <View>*/}
-            {/*                <Text className="text-white text-lg font-semibold">*/}
-            {/*                    Become a Tour Guide*/}
-            {/*                </Text>*/}
-            {/*                <Text className="text-white/80 text-sm mt-1">*/}
-            {/*                    Share your city with others*/}
-            {/*                </Text>*/}
-            {/*            </View>*/}
-
-            {/*            <Text className="text-white text-xl">→</Text>*/}
-            {/*        </View>*/}
-            {/*    </View>*/}
-            {/*</Pressable>*/}
-
-
-
-
-
-
-
-
-
-
-            <View className="mt-6 w-[90%] gap-3">
-                {/* === PAYMENTS BUTTON === */}
-                <Pressable
-                    onPress={() => router.push("/profile/payments")}
-                    className="w-full"
-                >
-                    <View
-                        className="flex-row items-center justify-between px-4 py-4 rounded-2xl"
-                        style={{
-                            backgroundColor: "rgba(255,255,255,0.12)",
-                        }}
-                    >
-                        <View className="flex-row items-center gap-3">
-                            <View className="bg-white/10 p-2 rounded-xl">
-                                <Text className="text-lg">💳</Text>
-                            </View>
-                            <Text className="text-white text-base font-medium">
-                                Payments
-                            </Text>
-                        </View>
-
-                        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
-                    </View>
-                </Pressable>
-
-
-
-                {/* PREFERENCES BUTTON */}
-                <Pressable
-                    onPress={() => router.push("/profile/preferences")}
-                    className="w-full"
-                >
-                    <View
-                        className="flex-row items-center justify-between px-4 py-4 rounded-2xl"
-                        style={{
-                            backgroundColor: "rgba(255,255,255,0.12)",
-                        }}
-                    >
-                        <View className="flex-row items-center gap-3">
-                            <View className="bg-white/10 p-2 rounded-xl">
-                                <Text className="text-lg">⚙️</Text>
-                            </View>
-                            <Text className="text-white text-base font-medium">
-                                Preferences
-                            </Text>
-                        </View>
-
-                        <Ionicons
-                            name="chevron-forward"
-                            size={18}
-                            color="rgba(255,255,255,0.6)"
-                        />
-                    </View>
-                </Pressable>
-
-
-
-                {/* HELP CENTER BUTTON */}
-                <Pressable
-                    onPress={() => router.push("/profile/help-center")}
-                    className="w-full"
-                >
-                    <View
-                        className="flex-row items-center justify-between px-4 py-4 rounded-2xl"
-                        style={{
-                            backgroundColor: "rgba(255,255,255,0.12)",
-                        }}
-                    >
-                        <View className="flex-row items-center gap-3">
-                            <View className="bg-white/10 p-2 rounded-xl">
-                                <Text className="text-lg">❓</Text>
-                            </View>
-                            <Text className="text-white text-base font-medium">
-                                Help Center
-                            </Text>
-                        </View>
-
-                        <Ionicons
-                            name="chevron-forward"
-                            size={18}
-                            color="rgba(255,255,255,0.6)"
-                        />
-                    </View>
-                </Pressable>
-
-
-            </View>
-            </View>
-        </LinearGradient>
+      <View style={[styles.root, { backgroundColor: theme.background, justifyContent: 'center' }]}>
+        <ActivityIndicator color={theme.text} />
+      </View>
     );
+  }
+
+  return (
+    <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+
+        <Pressable onPress={() => router.push('/profile/settings')} style={styles.settingsBtn}>
+          <Ionicons name="settings-outline" size={22} color={theme.text} />
+        </Pressable>
+
+        <View style={styles.avatarBlock}>
+          <View style={[styles.avatar, { backgroundColor: theme.surface }]}>
+            <Text style={[typography.headingL, { color: theme.text }]}>{initials}</Text>
+          </View>
+          <Text style={[typography.headingM, { color: theme.text, marginTop: spacing.md }]}>
+            {fullName}
+          </Text>
+          <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 2 }]}>
+            {user?.email}
+          </Text>
+        </View>
+
+        <View style={[styles.statsRow, { backgroundColor: theme.surface }]}>
+          <View style={styles.statItem}>
+            <Text style={[typography.headingM, { color: theme.text }]}>12</Text>
+            <Text style={[typography.labelS, { color: theme.textSecondary, marginTop: 4 }]}>Tours</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: theme.background }]} />
+          <View style={styles.statItem}>
+            <Text style={[typography.headingM, { color: theme.text }]}>5</Text>
+            <Text style={[typography.labelS, { color: theme.textSecondary, marginTop: 4 }]}>Cities</Text>
+          </View>
+        </View>
+
+        {/* ── RESTORED PERFECT VERSION: Without 'Join' text ── */}
+        {!profile?.is_guide && profile?.application_status === 'none' && (
+          <View style={styles.guideJourney}>
+            <View style={[styles.guideJourneyContent, { backgroundColor: theme.surface }]}>
+              <View style={styles.guideTextSection}>
+                <Text style={[typography.headingS, { color: theme.text }]}>
+                  Share your city
+                </Text>
+                <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 2 }]} numberOfLines={2}>
+                  Turn your local knowledge into income.
+                </Text>
+              </View>
+              
+              <PressableButton
+                label="Apply"
+                onPress={() => router.push('/profile/become-guide')}
+                style={styles.guideStartBtnJoin}
+                icon="arrow-forward"
+              />
+            </View>
+          </View>
+        )}
+
+        {profile?.is_guide && (
+          <Pressable
+            onPress={() => router.push('/profile/guide-dashboard')}
+            style={({ pressed }) => [
+              styles.guideCard,
+              { backgroundColor: theme.surface, opacity: pressed ? 0.92 : 1 },
+            ]}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[typography.labelS, { color: theme.accent }]}>Guide dashboard</Text>
+              <View style={styles.guideStats}>
+                <View style={styles.guideStat}>
+                  <Text style={[typography.headingM, { color: theme.text }]}>$0</Text>
+                  <Text style={[typography.labelS, { color: theme.textSecondary }]}>Earned</Text>
+                </View>
+                <View style={styles.guideStat}>
+                  <Text style={[typography.headingM, { color: theme.text }]}>0</Text>
+                  <Text style={[typography.labelS, { color: theme.textSecondary }]}>Active</Text>
+                </View>
+              </View>
+            </View>
+            <Ionicons name="arrow-forward" size={18} color={theme.text} />
+          </Pressable>
+        )}
+
+        <View style={[styles.navSection, { backgroundColor: theme.surface }]}>
+          <NavRow icon="card-outline" label="Payments" onPress={() => router.push('/profile/payments')} />
+          <NavRow icon="options-outline" label="Preferences" onPress={() => router.push('/profile/preferences')} />
+          <NavRow icon="help-circle-outline" label="Help Center" onPress={() => router.push('/profile/help-center')} isLast />
+        </View>
+
+      </ScrollView>
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  scroll: { paddingBottom: spacing.xxl },
+  settingsBtn: {
+    position: 'absolute',
+    top: spacing.lg,
+    right: spacing.lg,
+    zIndex: 1,
+  },
+  avatarBlock: {
+    alignItems: 'center',
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xl,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: radius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.lg,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+  },
+  statDivider: {
+    width: StyleSheet.hairlineWidth,
+    marginVertical: spacing.md,
+  },
+  guideJourney: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xl,
+  },
+  guideJourneyContent: {
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  guideTextSection: {
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  guideStartBtnJoin: {
+    height: 40,
+    minWidth: 80,
+    paddingHorizontal: spacing.md,
+  },
+  guideCard: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  guideStats: {
+    flexDirection: 'row',
+    gap: spacing.xl,
+    marginTop: spacing.md,
+  },
+  guideStat: {},
+  navSection: {
+    marginTop: spacing.xl,
+    marginHorizontal: spacing.lg,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 14,
+  },
+});

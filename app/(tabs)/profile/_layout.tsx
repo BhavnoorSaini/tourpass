@@ -4,11 +4,7 @@ export default function ProfileLayout() {
     return (
         <Stack
             screenOptions={{
-                headerShown: true,
-                headerStyle: { backgroundColor: '#0B1D3A' },
-                headerTintColor: '#fff',
-                headerTitleStyle: { fontWeight: '600' },
-                headerShadowVisible: false,
+                headerShown: false,
             }}
         >
             <Stack.Screen name="index" options={{ headerShown: false }} />

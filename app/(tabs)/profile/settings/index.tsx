@@ -1,395 +1,288 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../../../lib/supabase';
-import { LinearGradient } from "expo-linear-gradient";
+import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/constants/theme';
+import { typography } from '@/constants/typography';
+import { radius, spacing } from '@/constants/spacing';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PressableButton } from '@/components/ui/PressableButton';
+import { StyledTextInput } from '@/components/ui/StyledTextInput';
 
-// --- Interfaces ---
-interface SettingsItemProps {
-    icon: keyof typeof Ionicons.glyphMap;
-    iconColor: string;
-    label: string;
-    value?: string;
-    onPress: () => void;
-    isDestructive?: boolean;
+// ── Settings Group (iOS-like Inset Group) ──────────────────────────────────
+function SettingsGroup({ children, label }: { children: React.ReactNode; label?: string }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.groupContainer}>
+      {label ? (
+        <Text style={[typography.labelS, styles.groupLabel, { color: theme.textSecondary }]}>
+          {label}
+        </Text>
+      ) : null}
+      <View style={[styles.groupCard, { backgroundColor: theme.surface }]}>
+        {children}
+      </View>
+    </View>
+  );
 }
 
-interface SectionHeaderProps {
-    title: string;
-}
-
-interface ModalProps {
-    visible: boolean;
-    onClose: () => void;
-}
-
-// --- Reusable Components ---
-const SettingsItem = ({ icon, iconColor, label, value, onPress, isDestructive = false }: SettingsItemProps) => (
-    <TouchableOpacity
-        onPress={onPress}
-        className="flex-row items-center justify-between p-4 bg-[#1F2937] border-b border-gray-700 first:rounded-t-xl last:rounded-b-xl last:border-b-0"
+// ── Settings row ───────────────────────────────────────────────────────────
+function SettingsRow({ label, value, onPress, isLast = false, destructive = false }: { label: string; value?: string; onPress: () => void; isLast?: boolean; destructive?: boolean }) {
+  const theme = useTheme();
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={[
+        styles.settingsRow,
+        {
+          backgroundColor: pressed ? theme.surfaceRaised : 'transparent',
+          borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+          borderBottomColor: theme.background, // subtle contrast against surface
+        },
+      ]}
     >
-        <View className="flex-row items-center">
-            <View className={`w-8 h-8 rounded-full items-center justify-center mr-3`} style={{ backgroundColor: `${iconColor}20` }}>
-                <Ionicons name={icon} size={18} color={iconColor} />
-            </View>
-            <Text className={`text-base font-medium ${isDestructive ? 'text-red-500' : 'text-white'}`}>
-                {label}
-            </Text>
-        </View>
-
-        <View className="flex-row items-center">
-            {value && <Text className="text-gray-400 mr-2 text-sm">{value}</Text>}
-            {!isDestructive && <Ionicons name="chevron-forward" size={20} color="#6B7280" />}
-        </View>
-    </TouchableOpacity>
-);
-
-const SectionHeader = ({ title }: SectionHeaderProps) => (
-    <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 ml-4 mt-6">
-        {title}
-    </Text>
-);
-
-// --- MODAL: Edit Profile ---
-const EditProfileModal = ({ visible, onClose }: ModalProps) => {
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-
-    // Fetch existing name when modal opens
-    useEffect(() => {
-        if (visible) {
-            async function loadUserData() {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user?.user_metadata) {
-                    setFirstName(user.user_metadata.first_name || '');
-                    setLastName(user.user_metadata.last_name || '');
-                }
-            }
-            void loadUserData();
-        }
-    }, [visible]);
-
-    const handleSave = async () => {
-        setIsSaving(true);
-        const { error } = await supabase.auth.updateUser({
-            data: {
-                first_name: firstName.trim(),
-                last_name: lastName.trim()
-            }
-        });
-        setIsSaving(false);
-
-        if (error) {
-            Alert.alert("Error", error.message);
-        } else {
-            Alert.alert("Success", "Profile updated successfully!");
-            onClose();
-        }
-    };
-
-    return (
-        <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-            <LinearGradient
-                colors={['#0F172A', '#020617', '#000000']}
-                style={{ flex: 1 }}
-            >
-                {/* Header */}
-                <View className="flex-row items-center justify-between px-4 pt-14 pb-4 bg-[#1F2937] border-b border-gray-700">
-                    <TouchableOpacity onPress={onClose} className="p-2" disabled={isSaving}>
-                        <Text className="text-blue-500 text-lg">Cancel</Text>
-                    </TouchableOpacity>
-                    <Text className="text-white text-lg font-bold">Edit Profile</Text>
-                    <TouchableOpacity onPress={handleSave} className="p-2" disabled={isSaving}>
-                        {isSaving ? (
-                            <ActivityIndicator color="#3B82F6" />
-                        ) : (
-                            <Text className="text-blue-500 font-bold text-lg">Save</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-
-                {/* Content */}
-                <View className="p-4 mt-4">
-                    <Text className="text-gray-400 text-xs uppercase mb-2 ml-2">First Name</Text>
-                    <TextInput
-                        value={firstName}
-                        onChangeText={setFirstName}
-                        placeholder="First Name"
-                        placeholderTextColor="#6B7280"
-                        editable={!isSaving}
-                        className="bg-[#1F2937] text-white p-4 rounded-xl border border-gray-700 mb-4"
-                    />
-
-                    <Text className="text-gray-400 text-xs uppercase mb-2 ml-2">Last Name</Text>
-                    <TextInput
-                        value={lastName}
-                        onChangeText={setLastName}
-                        placeholder="Last Name"
-                        placeholderTextColor="#6B7280"
-                        editable={!isSaving}
-                        className="bg-[#1F2937] text-white p-4 rounded-xl border border-gray-700 mb-4"
-                    />
-                </View>
-            </LinearGradient>
-        </Modal>
-    );
-};
-
-// --- MODAL: Change Password ---
-const ChangePasswordModal = ({ visible, onClose }: ModalProps) => {
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-
-    const handleUpdate = async () => {
-        if (newPassword !== confirmPassword) {
-            Alert.alert("Error", "Your new passwords do not match.");
-            return;
-        }
-        if (newPassword.length < 6) {
-            Alert.alert("Error", "Password must be at least 6 characters long.");
-            return;
-        }
-
-        setIsSaving(true);
-        const { error } = await supabase.auth.updateUser({
-            password: newPassword
-        });
-        setIsSaving(false);
-
-        if (error) {
-            Alert.alert("Error", error.message);
-        } else {
-            Alert.alert("Success", "Password updated successfully!");
-            setNewPassword('');
-            setConfirmPassword('');
-            onClose();
-        }
-    };
-
-    return (
-        <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-            <LinearGradient
-                colors={['#0F172A', '#020617', '#000000']}
-                style={{ flex: 1 }}
-            >
-                {/* Header */}
-                <View className="flex-row items-center justify-between px-4 pt-14 pb-4 bg-[#1F2937] border-b border-gray-700">
-                    <TouchableOpacity onPress={onClose} className="p-2" disabled={isSaving}>
-                        <Text className="text-blue-500 text-lg">Cancel</Text>
-                    </TouchableOpacity>
-                    <Text className="text-white text-lg font-bold">Password</Text>
-                    <TouchableOpacity onPress={handleUpdate} className="p-2" disabled={isSaving}>
-                        {isSaving ? (
-                            <ActivityIndicator color="#3B82F6" />
-                        ) : (
-                            <Text className="text-blue-500 font-bold text-lg">Update</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-
-                {/* Content */}
-                <View className="p-4 mt-4">
-                    <Text className="text-gray-400 text-xs uppercase mb-2 ml-2">New Password</Text>
-                    <TextInput
-                        value={newPassword}
-                        onChangeText={setNewPassword}
-                        secureTextEntry
-                        placeholder="New Password"
-                        placeholderTextColor="#6B7280"
-                        editable={!isSaving}
-                        className="bg-[#1F2937] text-white p-4 rounded-t-xl border-b border-gray-700"
-                    />
-                    <TextInput
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        secureTextEntry
-                        placeholder="Confirm New Password"
-                        placeholderTextColor="#6B7280"
-                        editable={!isSaving}
-                        className="bg-[#1F2937] text-white p-4 rounded-b-xl border border-gray-700"
-                    />
-                </View>
-            </LinearGradient>
-        </Modal>
-    );
-};
-
-// --- MAIN SCREEN ---
-export default function Settings() {
-    const router = useRouter();
-    const [loading, setLoading] = useState(true);
-    const [userEmail, setUserEmail] = useState('');
-
-    // Modal State
-    const [isProfileModalVisible, setProfileModalVisible] = useState(false);
-    const [isPasswordModalVisible, setPasswordModalVisible] = useState(false);
-
-    useEffect(() => {
-        async function getUserProfile() {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                setUserEmail(user?.email || "Guest");
-            } catch (error) {
-                console.log('Error:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
-        void getUserProfile();
-    }, [isProfileModalVisible]);
-
-    // Delete profile logic
-    const handleDeleteProfile = () => {
-        Alert.alert(
-            "Delete Profile",
-            "Are you completely sure? This will permanently delete your profile data. This cannot be undone.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete Profile",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            setLoading(true);
-
-                            const { data: { user } } = await supabase.auth.getUser();
-                            if (!user) throw new Error("No active user found.");
-
-                            const { error: deleteError } = await supabase
-                                .from('profiles')
-                                .delete()
-                                .eq('id', user.id);
-
-                            if (deleteError) throw deleteError;
-
-                            await supabase.auth.signOut();
-                            router.replace('/');
-
-                        } catch (error: any) {
-                            console.log('Error deleting profile:', error);
-                            Alert.alert("Error", error.message || "Failed to delete profile.");
-                            setLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    if (loading) {
-        return (
-            <View className="flex-1 bg-[#111827] justify-center items-center">
-                <ActivityIndicator size="large" color="#3B82F6" />
-            </View>
-        );
-    }
-
-    return (
-        <LinearGradient
-            colors={['#0F172A', '#020617', '#000000']}
-            style={{ flex: 1 }}
-        >
-            <ScrollView
-                contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: 16, paddingTop: 60 }}
-            >
-                {/* --- Modals --- */}
-                <EditProfileModal
-                    visible={isProfileModalVisible}
-                    onClose={() => setProfileModalVisible(false)}
-                />
-                <ChangePasswordModal
-                    visible={isPasswordModalVisible}
-                    onClose={() => setPasswordModalVisible(false)}
-                />
-
-                {/* --- Section 1: Account --- */}
-                <SectionHeader title="Account Settings" />
-                <View>
-                    <SettingsItem
-                        icon="person"
-                        iconColor="#3B82F6"
-                        label="Edit Profile"
-                        onPress={() => setProfileModalVisible(true)}
-                    />
-                    <SettingsItem
-                        icon="lock-closed"
-                        iconColor="#3B82F6"
-                        label="Change Password"
-                        onPress={() => setPasswordModalVisible(true)}
-                    />
-                </View>
-
-                {/* --- Section 2: Privacy --- */}
-                <SectionHeader title="Privacy & Security" />
-                <View>
-                    <SettingsItem
-                        icon="location"
-                        iconColor="#10B981"
-                        label="Location Sharing"
-                        value="Always"
-                        onPress={() => {}}
-                    />
-                    <SettingsItem
-                        icon="shield-checkmark"
-                        iconColor="#10B981"
-                        label="Data Privacy"
-                        onPress={() => {}}
-                    />
-                </View>
-
-                {/* --- Section 3: Notifications --- */}
-                <SectionHeader title="Notification Preferences" />
-                <View>
-                    <SettingsItem
-                        icon="notifications"
-                        iconColor="#F59E0B"
-                        label="Push Notifications"
-                        onPress={() => {}}
-                    />
-                    <SettingsItem
-                        icon="mail"
-                        iconColor="#F59E0B"
-                        label="Email Preferences"
-                        onPress={() => {}}
-                    />
-                </View>
-
-                {/* --- Section 4: About --- */}
-                <SectionHeader title="About" />
-                <View>
-                    <SettingsItem
-                        icon="information-circle"
-                        iconColor="#6B7280"
-                        label="Version"
-                        value="2.4.0 (142)"
-                        onPress={() => {}}
-                    />
-                    <SettingsItem
-                        icon="document-text"
-                        iconColor="#6B7280"
-                        label="Terms of Service"
-                        onPress={() => {}}
-                    />
-                </View>
-
-                {/* Delete Profile Button */}
-                <TouchableOpacity
-                    onPress={handleDeleteProfile}
-                    className="mt-8 bg-[#1F2937] rounded-xl p-4 flex-row justify-center items-center border border-red-900/30"
-                >
-                    <Ionicons name="trash-outline" size={20} color="#EF4444" style={{ marginRight: 8 }} />
-                    <Text className="text-red-500 font-bold text-base">Delete Profile</Text>
-                </TouchableOpacity>
-
-                <Text className="text-center text-gray-600 mt-6 text-sm">
-                    Logged in as {userEmail}
-                </Text>
-
-            </ScrollView>
-        </LinearGradient>
-    );
+      <Text style={[typography.bodyM, { color: destructive ? theme.destructive : theme.text, flex: 1 }]}>
+        {label}
+      </Text>
+      <View style={styles.settingsRowRight}>
+        {value ? <Text style={[typography.bodyS, { color: theme.textSecondary, marginRight: spacing.sm }]}>{value}</Text> : null}
+        {!destructive && <Ionicons name="chevron-forward" size={14} color={theme.textSecondary} />}
+      </View>
+    </Pressable>
+  );
 }
+
+// ── Edit Profile Modal ─────────────────────────────────────────────────────
+function EditProfileModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.user_metadata) {
+        setFirstName(user.user_metadata.first_name || '');
+        setLastName(user.user_metadata.last_name || '');
+      }
+    });
+  }, [visible]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ data: { first_name: firstName.trim(), last_name: lastName.trim() } });
+    setSaving(false);
+    if (error) { Alert.alert('Error', error.message); return; }
+    Alert.alert('Saved', 'Profile updated.'); onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+      <View style={[styles.modal, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+        <ScreenHeader
+          title="Edit Profile"
+          onBack={onClose}
+          right={
+            <Pressable onPress={handleSave} disabled={saving} style={styles.headerAction}>
+              {saving ? <ActivityIndicator size="small" color={theme.accent} /> : (
+                <Text style={[typography.buttonM, { color: theme.accent }]}>Done</Text>
+              )}
+            </Pressable>
+          }
+        />
+        <View style={styles.modalContent}>
+          <StyledTextInput label="First name" value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
+          <StyledTextInput label="Last name" value={lastName} onChangeText={setLastName} autoCapitalize="words" />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Change Password Modal ──────────────────────────────────────────────────
+function ChangePasswordModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleUpdate = async () => {
+    if (newPw !== confirmPw) { Alert.alert('Mismatch', 'Passwords do not match.'); return; }
+    if (newPw.length < 6) { Alert.alert('Too short', 'Password must be at least 6 characters.'); return; }
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: newPw });
+    setSaving(false);
+    if (error) { Alert.alert('Error', error.message); return; }
+    Alert.alert('Updated', 'Password updated.'); setNewPw(''); setConfirmPw(''); onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+      <View style={[styles.modal, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+        <ScreenHeader
+          title="Security"
+          onBack={onClose}
+          right={
+            <Pressable onPress={handleUpdate} disabled={saving} style={styles.headerAction}>
+              {saving ? <ActivityIndicator size="small" color={theme.accent} /> : (
+                <Text style={[typography.buttonM, { color: theme.accent }]}>Update</Text>
+              )}
+            </Pressable>
+          }
+        />
+        <View style={styles.modalContent}>
+          <StyledTextInput label="New password" value={newPw} onChangeText={setNewPw} secureTextEntry />
+          <StyledTextInput label="Confirm password" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Main Screen ────────────────────────────────────────────────────────────
+export default function SettingsScreen() {
+  const router = useRouter();
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const [userEmail, setUserEmail] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email || 'Guest');
+      setLoading(false);
+    });
+  }, [showProfileModal]);
+
+  const handleDeleteProfile = () => {
+    Alert.alert(
+      'Delete Profile',
+      'This will permanently delete your account. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) throw new Error('No active user.');
+              const { error } = await supabase.from('profiles').delete().eq('id', user.id);
+              if (error) throw error;
+              await supabase.auth.signOut();
+              router.replace('/');
+            } catch (e: any) {
+              Alert.alert('Error', e.message || 'Failed to delete profile.');
+              setLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.loader, { backgroundColor: theme.background }]}>
+        <ActivityIndicator color={theme.text} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+      <EditProfileModal visible={showProfileModal} onClose={() => setShowProfileModal(false)} />
+      <ChangePasswordModal visible={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
+
+      <ScreenHeader title="Settings" onBack={() => router.back()} />
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}>
+
+        <SettingsGroup label="Account">
+          <SettingsRow label="Edit Profile" onPress={() => setShowProfileModal(true)} />
+          <SettingsRow label="Change Password" onPress={() => setShowPasswordModal(true)} isLast />
+        </SettingsGroup>
+
+        <SettingsGroup label="System">
+          <SettingsRow label="Push Notifications" onPress={() => {}} />
+          <SettingsRow label="Data & Privacy" onPress={() => {}} isLast />
+        </SettingsGroup>
+
+        <SettingsGroup label="About">
+          <SettingsRow label="Version" value="2.4.0" onPress={() => {}} />
+          <SettingsRow label="Support" onPress={() => {}} isLast />
+        </SettingsGroup>
+
+        <View style={styles.footer}>
+          <PressableButton label="Sign out" onPress={() => supabase.auth.signOut()} variant="ghost" style={styles.signOutBtn} />
+          <PressableButton label="Delete Account" onPress={handleDeleteProfile} variant="destructive" style={styles.deleteBtn} />
+          
+          <Text style={[typography.bodyS, { color: theme.textSecondary, textAlign: 'center', marginTop: spacing.xl }]}>
+            Logged in as {userEmail}
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  groupContainer: {
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  groupLabel: {
+    marginLeft: spacing.sm,
+    marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+  },
+  groupCard: {
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+  },
+  settingsRowRight: { flexDirection: 'row', alignItems: 'center' },
+  modal: { flex: 1 },
+  modalContent: { padding: spacing.lg, marginTop: spacing.md },
+  headerAction: {
+    paddingHorizontal: spacing.sm,
+  },
+  footer: {
+    marginTop: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  signOutBtn: {
+    height: 48,
+  },
+  deleteBtn: {
+    height: 48,
+  },
+});

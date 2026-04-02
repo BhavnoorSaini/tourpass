@@ -3,13 +3,15 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import Map from '@/components/map/map';
 import { useRoutes } from '@/contexts/RoutesContext';
 import {
@@ -20,9 +22,14 @@ import {
   type MapboxSuggestion,
 } from '@/lib/mapbox';
 import type { LngLat, RoutePreview } from '@/types/route';
+import { useTheme } from '@/constants/theme';
+import { typography } from '@/constants/typography';
+import { radius, spacing } from '@/constants/spacing';
 
-export default function Index() {
+export default function HomeScreen() {
   const router = useRouter();
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { routes } = useRoutes();
 
   const sessionTokenRef = useRef(createSearchSessionToken());
@@ -36,172 +43,83 @@ export default function Index() {
   const [highlightedCoordinate, setHighlightedCoordinate] = useState<LngLat | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [routePreviews, setRoutePreviews] = useState<RoutePreview[]>([]);
+  const [startPressed, setStartPressed] = useState(false);
 
   const selectedRoute = useMemo(
-    () => routes.find((route) => route.id === selectedRouteId) ?? null,
+    () => routes.find((r) => r.id === selectedRouteId) ?? null,
     [routes, selectedRouteId],
   );
   const visibleSuggestions = suggestions.slice(0, 6);
   const shouldShowSuggestions = suggestionsOpen && visibleSuggestions.length > 0;
 
   useEffect(() => {
-    if (!selectedRouteId) {
-      return;
-    }
-
-    const routeStillExists = routes.some((route) => route.id === selectedRouteId);
-    if (!routeStillExists) {
-      setSelectedRouteId(null);
-    }
+    if (!selectedRouteId) return;
+    if (!routes.some((r) => r.id === selectedRouteId)) setSelectedRouteId(null);
   }, [routes, selectedRouteId]);
 
   useEffect(() => {
     let cancelled = false;
-
-    const buildRoutePreviews = async () => {
-      if (!routes.length) {
-        setRoutePreviews([]);
-        return;
-      }
-
-      const previewResults = await Promise.all(
+    const build = async () => {
+      if (!routes.length) { setRoutePreviews([]); return; }
+      const results = await Promise.all(
         routes.map(async (route) => {
-          if (route.stops.length < 2) {
-            return null;
-          }
-
+          if (route.stops.length < 2) return null;
           try {
-            const options = await fetchDirectionsOptions(
-              route.stops.map((stop) => stop.coordinate),
-              'walking',
-            );
-
-            const firstOption = options[0];
-            if (!firstOption?.coordinates?.length) {
-              return null;
-            }
-
-            return {
-              routeId: route.id,
-              coordinates: firstOption.coordinates,
-            } satisfies RoutePreview;
-          } catch (error) {
-            console.error('Failed to build saved route preview', error);
-            return null;
-          }
+            const options = await fetchDirectionsOptions(route.stops.map((s) => s.coordinate), 'walking');
+            const first = options[0];
+            if (!first?.coordinates?.length) return null;
+            return { routeId: route.id, coordinates: first.coordinates } satisfies RoutePreview;
+          } catch { return null; }
         }),
       );
-
-      if (!cancelled) {
-        setRoutePreviews(
-          previewResults.filter((preview): preview is RoutePreview => preview !== null),
-        );
-      }
+      if (!cancelled) setRoutePreviews(results.filter((p): p is RoutePreview => p !== null));
     };
-
-    buildRoutePreviews();
-
-    return () => {
-      cancelled = true;
-    };
+    build();
+    return () => { cancelled = true; };
   }, [routes]);
 
   useEffect(() => {
-    const trimmedQuery = query.trim();
-
-    if (trimmedQuery.length < 2) {
-      setSuggestions([]);
-      setSuggestionsOpen(false);
-      setSearchLoading(false);
-      return;
+    const trimmed = query.trim();
+    if (trimmed.length < 2 || !searchFocused) {
+      setSuggestions([]); setSuggestionsOpen(false); setSearchLoading(false); return;
     }
-
-    if (!searchFocused) {
-      setSearchLoading(false);
-      return;
-    }
-
     let cancelled = false;
-    const timeout = setTimeout(async () => {
+    const t = setTimeout(async () => {
+      setSearchLoading(true);
       try {
-        setSearchLoading(true);
-        const nextSuggestions = await searchMapboxSuggestions(
-          trimmedQuery,
-          sessionTokenRef.current,
-        );
-
-        if (!cancelled) {
-          setSuggestions(nextSuggestions);
-          setSuggestionsOpen(nextSuggestions.length > 0);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.error('Failed to search places', error);
-          setSuggestions([]);
-          setSuggestionsOpen(false);
-        }
-      } finally {
-        if (!cancelled) {
-          setSearchLoading(false);
-        }
-      }
+        const next = await searchMapboxSuggestions(trimmed, sessionTokenRef.current);
+        if (!cancelled) { setSuggestions(next); setSuggestionsOpen(next.length > 0); }
+      } catch { if (!cancelled) { setSuggestions([]); setSuggestionsOpen(false); } }
+      finally { if (!cancelled) setSearchLoading(false); }
     }, 280);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timeout);
-    };
+    return () => { cancelled = true; clearTimeout(t); };
   }, [query, searchFocused]);
 
   const collapseSearch = () => {
-    Keyboard.dismiss();
-    setSearchFocused(false);
-    setSuggestionsOpen(false);
+    Keyboard.dismiss(); setSearchFocused(false); setSuggestionsOpen(false);
   };
 
-  const handleQueryChange = (nextQuery: string) => {
-    setQuery(nextQuery);
-    setSearchFocused(true);
-
-    if (nextQuery.trim().length < 2) {
-      setSuggestions([]);
-      setSuggestionsOpen(false);
-    }
-  };
-
-  const handleSuggestionPress = async (suggestion: MapboxSuggestion) => {
+  const handleSuggestionPress = async (s: MapboxSuggestion) => {
     try {
       setResolvingSelection(true);
-      const place = await retrieveMapboxLocation(
-        suggestion.mapboxId,
-        sessionTokenRef.current,
-      );
-
+      const place = await retrieveMapboxLocation(s.mapboxId, sessionTokenRef.current);
       setQuery(place.fullAddress);
       setHighlightedCoordinate(place.coordinate);
-      setSuggestions([]);
-      setSuggestionsOpen(false);
-      setSearchFocused(false);
+      setSuggestions([]); setSuggestionsOpen(false); setSearchFocused(false);
       Keyboard.dismiss();
       sessionTokenRef.current = createSearchSessionToken();
-    } catch (error) {
-      console.error('Failed to retrieve selected place', error);
-      Alert.alert('Location Error', 'Could not open that location. Please try another result.');
-    } finally {
-      setResolvingSelection(false);
-    }
+    } catch {
+      Alert.alert('Location Error', 'Could not open location.');
+    } finally { setResolvingSelection(false); }
   };
 
   const handleStartNavigation = () => {
-    if (!selectedRouteId) {
-      return;
-    }
-
-    router.push({
-      pathname: '/(tabs)/home/tour',
-      params: { routeId: selectedRouteId },
-    });
+    if (!selectedRouteId) return;
+    router.push({ pathname: '/(tabs)/home/tour', params: { routeId: selectedRouteId } });
   };
+
+  const overlayBg = theme.overlayBackground;
+  const topOffset = insets.top + spacing.md;
 
   return (
     <View style={styles.container}>
@@ -213,73 +131,95 @@ export default function Index() {
         onMapPress={collapseSearch}
       />
 
-      <View style={styles.topOverlay}>
-        <View style={styles.searchRow}>
-          <View style={styles.searchInputWrap}>
-            <TextInput
-              value={query}
-              onChangeText={handleQueryChange}
-              onFocus={() => {
-                setSearchFocused(true);
-                if (query.trim().length >= 2 && suggestions.length > 0) {
-                  setSuggestionsOpen(true);
-                }
-              }}
-              placeholder="Search places with Mapbox"
-              placeholderTextColor="#64748b"
-              style={styles.searchInput}
-              autoCorrect={false}
-              autoCapitalize="none"
-            />
-            {(searchLoading || resolvingSelection) && (
-              <ActivityIndicator size="small" color="#2563eb" style={styles.searchSpinner} />
-            )}
-          </View>
-
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => router.push('/(tabs)/home/create-route')}
-            activeOpacity={0.9}
-          >
-            <Text style={styles.createButtonText}>＋</Text>
-          </TouchableOpacity>
+      {/* ── Search bar ── */}
+      <View style={[styles.topOverlay, { top: topOffset }]}>
+        <View style={[styles.searchRow, { backgroundColor: overlayBg }]}>
+          <Ionicons name="search-outline" size={16} color={theme.textSecondary} style={styles.searchIcon} />
+          <TextInput
+            value={query}
+            onChangeText={(v) => {
+              setQuery(v); setSearchFocused(true);
+              if (v.trim().length < 2) { setSuggestions([]); setSuggestionsOpen(false); }
+            }}
+            onFocus={() => {
+              setSearchFocused(true);
+              if (query.trim().length >= 2 && suggestions.length > 0) setSuggestionsOpen(true);
+            }}
+            placeholder="Search places"
+            placeholderTextColor={theme.textSecondary}
+            style={[typography.bodyM, styles.searchInput, { color: theme.text }]}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {(searchLoading || resolvingSelection) && (
+            <ActivityIndicator size="small" color={theme.accent} style={styles.searchSpinner} />
+          )}
         </View>
 
-        {shouldShowSuggestions && (
-          <View style={styles.suggestionsPanel}>
-            {visibleSuggestions.map((suggestion, index) => (
-              <TouchableOpacity
-                key={suggestion.mapboxId}
-                style={[
-                  styles.suggestionRow,
-                  index === visibleSuggestions.length - 1 ? styles.suggestionRowLast : null,
-                ]}
-                onPress={() => handleSuggestionPress(suggestion)}
-                activeOpacity={0.84}
-              >
-                <Text style={styles.suggestionTitle}>{suggestion.name}</Text>
-                <Text numberOfLines={1} style={styles.suggestionSubtitle}>
-                  {suggestion.fullAddress}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        <Pressable
+          onPress={() => router.push('/(tabs)/home/create-route')}
+          style={[styles.addButton, { backgroundColor: theme.accent }]}
+        >
+          <Ionicons name="add" size={24} color={theme.accentText} />
+        </Pressable>
       </View>
 
-      {routePreviews.length > 0 && !selectedRoute && (
-        <View style={styles.helperChip}>
-          <Text style={styles.helperChipText}>Tap a route line on the map to select it</Text>
+      {/* ── Suggestions ── */}
+      {shouldShowSuggestions && (
+        <View style={[styles.suggestions, { top: topOffset + 56 + spacing.sm, backgroundColor: overlayBg }]}>
+          {visibleSuggestions.map((s, i) => (
+            <Pressable
+              key={s.mapboxId}
+              onPress={() => handleSuggestionPress(s)}
+              style={[
+                styles.suggestionRow,
+                i < visibleSuggestions.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.background },
+              ]}
+            >
+              <Text style={[typography.bodyM, { color: theme.text }]}>{s.name}</Text>
+              <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 1 }]} numberOfLines={1}>{s.fullAddress}</Text>
+            </Pressable>
+          ))}
         </View>
       )}
 
+      {/* ── Route hint ── */}
+      {routePreviews.length > 0 && !selectedRoute && (
+        <View style={[styles.hint, { backgroundColor: theme.accent }]}>
+          <Text style={[typography.labelS, { color: theme.accentText }]}>
+            Select a route to begin
+          </Text>
+        </View>
+      )}
+
+      {/* ── Selected route panel ── */}
       {selectedRoute && (
-        <View style={styles.startPanel}>
-          <Text style={styles.routeTitle}>{selectedRoute.title}</Text>
-          <Text style={styles.routeMeta}>{selectedRoute.stops.length} stops</Text>
-          <TouchableOpacity style={styles.startButton} onPress={handleStartNavigation}>
-            <Text style={styles.startButtonText}>Start Navigation</Text>
-          </TouchableOpacity>
+        <View style={[styles.startPanel, { backgroundColor: overlayBg }]}>
+          <View style={styles.startPanelContent}>
+            <Text style={[typography.headingS, { color: theme.text }]}>
+              {selectedRoute.title}
+            </Text>
+            <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 2 }]}>
+              {selectedRoute.stops.length} stops
+            </Text>
+          </View>
+          <Pressable
+            onPress={handleStartNavigation}
+            onPressIn={() => setStartPressed(true)}
+            onPressOut={() => setStartPressed(false)}
+            style={[
+              styles.startButton,
+              {
+                backgroundColor: theme.accent,
+                opacity: startPressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <Ionicons name="navigate" size={16} color={theme.accentText} />
+            <Text style={[typography.buttonM, { color: theme.accentText, marginLeft: spacing.xs }]}>
+              Start
+            </Text>
+          </Pressable>
         </View>
       )}
     </View>
@@ -287,139 +227,91 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   topOverlay: {
     position: 'absolute',
-    top: 56,
-    left: 16,
-    right: 16,
-  },
-  searchRow: {
+    left: spacing.lg,
+    right: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.sm,
   },
-  searchInputWrap: {
+  searchRow: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.88)',
-    borderRadius: 20,
-    minHeight: 50,
-    justifyContent: 'center',
-    shadowColor: '#020617',
-    shadowOpacity: 0.14,
-    shadowRadius: 12,
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radius.xl,
+    paddingHorizontal: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 4,
   },
-  searchInput: {
-    paddingLeft: 16,
-    paddingRight: 40,
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#0f172a',
-  },
-  searchSpinner: {
-    position: 'absolute',
-    right: 14,
-  },
-  createButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#2563eb',
+  searchIcon: { marginRight: spacing.xs },
+  searchInput: { flex: 1, paddingVertical: 0 },
+  searchSpinner: { marginLeft: spacing.xs },
+  addButton: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#020617',
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  createButtonText: {
-    color: '#ffffff',
-    fontSize: 28,
-    marginTop: -3,
-    fontWeight: '400',
-  },
-  suggestionsPanel: {
-    marginTop: 10,
-    borderRadius: 24,
+  suggestions: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    borderRadius: radius.lg,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    shadowColor: '#020617',
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-    elevation: 5,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
   suggestionRow: {
-    paddingHorizontal: 14,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(148,163,184,0.3)',
   },
-  suggestionRowLast: {
-    borderBottomWidth: 0,
-  },
-  suggestionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  suggestionSubtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    color: '#64748b',
-  },
-  helperChip: {
+  hint: {
     position: 'absolute',
-    bottom: 122,
-    left: 16,
-    right: 16,
-    borderRadius: 999,
-    backgroundColor: 'rgba(15,23,42,0.82)',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-  },
-  helperChipText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    bottom: 72 + spacing.lg,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
   },
   startPanel: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 92,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    shadowColor: '#020617',
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 6,
-  },
-  routeTitle: {
-    color: '#0f172a',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  routeMeta: {
-    marginTop: 4,
-    color: '#64748b',
-    fontSize: 12,
-  },
-  startButton: {
-    marginTop: 12,
-    borderRadius: 999,
-    backgroundColor: '#0f766e',
-    paddingVertical: 13,
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: 72 + spacing.lg,
+    borderRadius: radius.xl,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  startButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 14,
+  startPanelContent: { flex: 1 },
+  startButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
   },
 });

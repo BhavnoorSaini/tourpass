@@ -9,24 +9,16 @@ interface NavigationCoordinate {
   longitude: number;
 }
 
-function parseCoordinates(serializedCoordinates?: string) {
-  if (!serializedCoordinates) {
-    return [] as NavigationCoordinate[];
-  }
-
+function parseCoordinates(serialized?: string): NavigationCoordinate[] {
+  if (!serialized) return [];
   try {
-    const parsed = JSON.parse(serializedCoordinates);
-    if (!Array.isArray(parsed)) {
-      return [] as NavigationCoordinate[];
-    }
-
+    const parsed = JSON.parse(serialized);
+    if (!Array.isArray(parsed)) return [];
     return parsed.filter(
-      (item) =>
-        typeof item?.latitude === 'number' &&
-        typeof item?.longitude === 'number',
+      (item) => typeof item?.latitude === 'number' && typeof item?.longitude === 'number',
     ) as NavigationCoordinate[];
   } catch {
-    return [] as NavigationCoordinate[];
+    return [];
   }
 }
 
@@ -37,87 +29,65 @@ export default function TourNavigation() {
   const { getRouteById } = useRoutes();
 
   const routeIdParam = typeof params.routeId === 'string' ? params.routeId : undefined;
-  const coordinatesParam =
-    typeof params.coordinates === 'string' ? params.coordinates : undefined;
+  const coordinatesParam = typeof params.coordinates === 'string' ? params.coordinates : undefined;
   const titleParam = typeof params.title === 'string' ? params.title : undefined;
 
   const selectedRoute = routeIdParam ? getRouteById(routeIdParam) : undefined;
-
-  const fallbackCoordinates = useMemo(
-    () => parseCoordinates(coordinatesParam),
-    [coordinatesParam],
-  );
+  const fallbackCoordinates = useMemo(() => parseCoordinates(coordinatesParam), [coordinatesParam]);
 
   const coordinates: NavigationCoordinate[] = useMemo(() => {
+    let raw: NavigationCoordinate[] = [];
     if (selectedRoute) {
-      return selectedRoute.stops.map((stop) => ({
+      raw = selectedRoute.stops.map((stop) => ({
         latitude: stop.coordinate[1],
         longitude: stop.coordinate[0],
       }));
+    } else {
+      raw = fallbackCoordinates;
     }
-
-    return fallbackCoordinates;
+    
+    // Filter out duplicates or points that are too close (simplistic check)
+    return raw.filter((coord, index, self) => 
+      index === 0 || 
+      Math.abs(coord.latitude - self[index-1].latitude) > 0.00001 || 
+      Math.abs(coord.longitude - self[index-1].longitude) > 0.00001
+    );
   }, [fallbackCoordinates, selectedRoute]);
 
   const routeTitle =
     selectedRoute?.title ||
-    (titleParam && titleParam.trim().length > 0
-      ? titleParam
-      : 'Custom route');
+    (titleParam && titleParam.trim().length > 0 ? titleParam : 'Custom route');
 
   useLayoutEffect(() => {
     const parent = navigation.getParent();
-    parent?.setOptions({
-      tabBarStyle: { display: 'none' },
-    });
-
+    parent?.setOptions({ tabBarStyle: { display: 'none' } });
     return () => {
-      parent?.setOptions({
-        tabBarStyle: {
-          position: 'absolute',
-          bottom: 20,
-          elevation: 0,
-          marginHorizontal: 10,
-          height: 58,
-          backgroundColor: '#320e4f',
-          borderRadius: 16,
-          borderTopWidth: 0,
-          shadowColor: '#000',
-          shadowOpacity: 0.3,
-        },
-      });
+      parent?.setOptions({ tabBarStyle: undefined });
     };
   }, [navigation]);
 
   useEffect(() => {
-    if (coordinates.length >= 2) {
-      return;
-    }
-
-    Alert.alert(
-      'Route Missing',
-      'No valid route coordinates were found for navigation.',
-      [{ text: 'OK', onPress: () => router.back() }],
-    );
+    if (coordinates.length >= 2) return;
+    Alert.alert('Route Missing', 'No valid route coordinates found.', [
+      { text: 'OK', onPress: () => router.back() },
+    ]);
   }, [coordinates.length, router]);
 
-  if (coordinates.length < 2) {
-    return <View style={styles.container} />;
-  }
+  useEffect(() => {
+    console.log('Navigating with coordinates:', JSON.stringify(coordinates));
+  }, [coordinates]);
+
+  if (coordinates.length < 2) return <View style={styles.container} />;
 
   return (
     <View style={styles.container}>
       <MapboxNavigationView
         style={styles.navigation}
         coordinates={coordinates}
-        waypointIndices={coordinates.map((_, index) => index)}
+        waypointIndices={[]}
         routeProfile="walking"
-        onCancelNavigation={() => {
-          router.back();
-        }}
-        onWaypointArrival={(event) => {
-          console.log('Arrived at waypoint:', event.nativeEvent);
-        }}
+        onCancelNavigation={() => router.back()}
+        onWaypointArrival={(e) => { console.log('Waypoint arrived:', e.nativeEvent); }}
         onFinalDestinationArrival={() => {
           Alert.alert(
             'Navigation Complete',
@@ -125,9 +95,9 @@ export default function TourNavigation() {
             [{ text: 'OK', onPress: () => router.back() }],
           );
         }}
-        onRouteFailedToLoad={(event) => {
-          console.error('Route failed to load:', event.nativeEvent?.errorMessage);
-          Alert.alert('Route Error', event.nativeEvent?.errorMessage || 'Failed to load route');
+        onRouteFailedToLoad={(e) => {
+          console.error('Route failed:', e.nativeEvent?.errorMessage);
+          Alert.alert('Route Error', e.nativeEvent?.errorMessage || 'Failed to load route');
         }}
       />
     </View>
@@ -135,10 +105,6 @@ export default function TourNavigation() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  navigation: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  navigation: { flex: 1 },
 });
