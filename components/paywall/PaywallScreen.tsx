@@ -1,410 +1,351 @@
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Card } from '@/components/ui/Card';
+import { PressableButton } from '@/components/ui/PressableButton';
+import { border, useTheme } from '@/constants/theme';
+import { radius, spacing } from '@/constants/spacing';
+import { typography } from '@/constants/typography';
 
 export type PlanId = 'monthly' | 'annual';
 
 interface PaywallScreenProps {
-  onClose?: () => void;
-  onContinue?: (selectedPlan: PlanId) => void;
+	onClose?: () => void;
+	onContinue?: (selectedPlan: PlanId) => void;
+	presentation?: 'screen' | 'modal';
 }
 
 const FEATURE_ITEMS = [
-  'Unlimited self-guided routes in every city',
-  'Offline access for your saved tours',
-  'Premium audio insights and local tips',
-  'Priority support while you travel',
+	'Unlimited routes',
+	'Offline access',
+	'Premium audio tips',
+	'Priority support',
 ];
 
 const PLAN_OPTIONS: Array<{
-  id: PlanId;
-  title: string;
-  price: string;
-  badge?: string;
-  description: string;
+	id: PlanId;
+	title: string;
+	price: string;
+	badge?: string;
 }> = [
-  {
-    id: 'monthly',
-    title: 'Monthly',
-    price: '$4.99/month',
-    description: 'Flexible access for short trips and weekend adventures.',
-  },
-  {
-    id: 'annual',
-    title: 'Annual',
-    price: '$39.99/year',
-    badge: 'Best Value',
-    description: 'Save more and keep premium features for every journey.',
-  },
+	{
+		id: 'monthly',
+		title: 'Monthly',
+		price: '$4.99 / month',
+	},
+	{
+		id: 'annual',
+		title: 'Annual',
+		price: '$39.99 / year',
+		badge: 'Best Value',
+	},
 ];
 
-export function PaywallScreen({ onClose, onContinue }: PaywallScreenProps) {
-  const [selectedPlan, setSelectedPlan] = useState<PlanId>('annual');
+function PlanButton({
+	title,
+	price,
+	badge,
+	selected,
+	onPress,
+}: {
+	title: string;
+	price: string;
+	badge?: string;
+	selected: boolean;
+	onPress: () => void;
+}) {
+	const theme = useTheme();
+	const planStyle = {
+		...styles.planCard,
+		borderWidth: 1,
+		borderColor: selected ? theme.accent : border(theme),
+	};
 
-  const selectedPlanDetails = useMemo(
-    () => PLAN_OPTIONS.find((plan) => plan.id === selectedPlan),
-    [selectedPlan]
-  );
+	return (
+		<Card onPress={onPress} style={planStyle}>
+			<View style={styles.planRow}>
+				<View style={{ flex: 1 }}>
+					<Text style={[typography.headingS, { color: theme.text }]}>{title}</Text>
+					<Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 4 }]}>{price}</Text>
+				</View>
 
-  const handleSubscribe = () => {
-    if (onContinue) {
-      onContinue(selectedPlan);
-      return;
-    }
+				<View style={styles.planActions}>
+					{badge ? (
+						<View style={[styles.badge, { backgroundColor: `${theme.accent}18` }]}>
+							<Text style={[typography.labelS, { color: theme.accent }]}>{badge}</Text>
+						</View>
+					) : null}
+					<Ionicons
+						name={selected ? 'radio-button-on' : 'radio-button-off'}
+						size={18}
+						color={selected ? theme.accent : theme.textSecondary}
+					/>
+				</View>
+			</View>
+		</Card>
+	);
+}
 
-    console.log('Purchase triggered for plan:', selectedPlan);
-  };
+function SecondaryButton({ label, onPress }: { label: string; onPress: () => void }) {
+	const theme = useTheme();
 
-  const handleClose = () => {
-    if (onClose) {
-      onClose();
-      return;
-    }
+	return (
+		<Pressable onPress={onPress} style={[styles.secondaryButton, { borderColor: border(theme) }]}>
+			<Text style={[typography.buttonM, { color: theme.text }]}>{label}</Text>
+		</Pressable>
+	);
+}
 
-    console.log('Paywall dismissed');
-  };
+export function PaywallScreen({
+	onClose,
+	onContinue,
+	presentation = 'screen',
+}: PaywallScreenProps) {
+	const theme = useTheme();
+	const [selectedPlan, setSelectedPlan] = useState<PlanId>('annual');
+	const isModal = presentation === 'modal';
 
-  return (
-    <LinearGradient colors={['#06141B', '#0B2733', '#102F3D']} style={styles.root}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.headerActions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close paywall"
-            hitSlop={12}
-            onPress={handleClose}
-            style={styles.closeButton}
-          >
-            <Ionicons name="close" size={22} color="#E6F4F1" />
-          </Pressable>
-        </View>
+	const selectedPlanDetails = useMemo(
+		() => PLAN_OPTIONS.find((plan) => plan.id === selectedPlan),
+		[selectedPlan]
+	);
 
-        <ScrollView
-          bounces={false}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.heroCard}>
-            <View style={styles.iconShell}>
-              <LinearGradient
-                colors={['#6EE7C8', '#2DD4BF']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.iconGlow}
-              >
-                <Ionicons name="compass" size={34} color="#06252F" />
-              </LinearGradient>
-            </View>
+	const handleClose = () => {
+		if (onClose) {
+			onClose();
+			return;
+		}
+	};
 
-            <Text style={styles.eyebrow}>Premium Access</Text>
-            <Text style={styles.title}>Unlock Tourpass Premium</Text>
-            <Text style={styles.subtitle}>
-              Explore deeper, plan smarter, and travel with a smoother guided
-              experience wherever you go.
-            </Text>
-          </View>
+	const handleSubscribe = () => {
+		if (onContinue) {
+			onContinue(selectedPlan);
+			return;
+		}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Everything you get</Text>
+		console.log('Purchase triggered for plan:', selectedPlan);
+	};
 
-            <View style={styles.featuresCard}>
-              {FEATURE_ITEMS.map((feature) => (
-                <View key={feature} style={styles.featureRow}>
-                  <View style={styles.checkIcon}>
-                    <Ionicons name="checkmark" size={16} color="#03212A" />
-                  </View>
-                  <Text style={styles.featureText}>{feature}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
+	return (
+		<View
+			style={[
+				styles.root,
+				{
+					backgroundColor: theme.background,
+					borderRadius: isModal ? radius.xl : 0,
+				},
+			]}
+		>
+			<SafeAreaView style={styles.safeArea}>
+				<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+					<View style={styles.header}>
+						<View style={styles.headerCopy}>
+							<Text style={[typography.labelM, { color: theme.textSecondary }]}>
+								Tour Pass Premium
+							</Text>
+							<Text style={[typography.headingM, { color: theme.text, marginTop: spacing.xs }]}>
+								Pick a plan
+							</Text>
+						</View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Choose your plan</Text>
+						<Pressable onPress={handleClose} style={styles.iconButton} hitSlop={12}>
+							<Ionicons name="close" size={20} color={theme.text} />
+						</Pressable>
+					</View>
 
-            <View style={styles.planList}>
-              {PLAN_OPTIONS.map((plan) => {
-                const isSelected = selectedPlan === plan.id;
+					<Card style={styles.heroCard}>
+						<View style={styles.heroRow}>
+							<View style={[styles.heroIcon, { backgroundColor: `${theme.accent}18` }]}>
+								<Ionicons name="sparkles-outline" size={20} color={theme.accent} />
+							</View>
+							<View style={{ flex: 1 }}>
+								<Text style={[typography.headingS, { color: theme.text }]}>
+									Unlock Tour Pass Premium
+								</Text>
+								<Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 4 }]}>
+									Choose subscription type.
+								</Text>
+							</View>
+						</View>
+					</Card>
 
-                return (
-                  <Pressable
-                    key={plan.id}
-                    accessibilityRole="button"
-                    onPress={() => setSelectedPlan(plan.id)}
-                    style={[
-                      styles.planCard,
-                      isSelected && styles.planCardSelected,
-                    ]}
-                  >
-                    <View style={styles.planHeader}>
-                      <View>
-                        <Text style={styles.planTitle}>{plan.title}</Text>
-                        <Text style={styles.planPrice}>{plan.price}</Text>
-                      </View>
+					<View style={styles.section}>
+						<Text style={[typography.bodyS, { color: theme.textSecondary, marginBottom: spacing.md }]}>
+							Included features
+						</Text>
 
-                      {plan.badge ? (
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>{plan.badge}</Text>
-                        </View>
-                      ) : null}
-                    </View>
+						{FEATURE_ITEMS.map((feature) => (
+							<Card key={feature} style={styles.featureCard}>
+								<View style={styles.featureRow}>
+									<View style={[styles.featureIcon, { backgroundColor: `${theme.accent}18` }]}>
+										<Ionicons name="checkmark" size={16} color={theme.accent} />
+									</View>
+									<Text style={[typography.bodyM, { color: theme.text }]}>{feature}</Text>
+								</View>
+							</Card>
+						))}
+					</View>
 
-                    <Text style={styles.planDescription}>{plan.description}</Text>
+					<View style={styles.section}>
+						<Text style={[typography.bodyS, { color: theme.textSecondary, marginBottom: spacing.md }]}>
+							Plans
+						</Text>
 
-                    <View
-                      style={[
-                        styles.selectionIndicator,
-                        isSelected && styles.selectionIndicatorActive,
-                      ]}
-                    >
-                      {isSelected ? (
-                        <Ionicons name="checkmark-circle" size={20} color="#6EE7C8" />
-                      ) : (
-                        <Ionicons
-                          name="ellipse-outline"
-                          size={20}
-                          color="rgba(230, 244, 241, 0.45)"
-                        />
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        </ScrollView>
+						{PLAN_OPTIONS.map((plan) => (
+							<PlanButton
+								key={plan.id}
+								title={plan.title}
+								price={plan.price}
+								badge={plan.badge}
+								selected={selectedPlan === plan.id}
+								onPress={() => setSelectedPlan(plan.id)}
+							/>
+						))}
+					</View>
 
-        <View style={styles.footer}>
-          <Pressable onPress={handleSubscribe} style={styles.ctaButton}>
-            <Text style={styles.ctaText}>
-              Continue with {selectedPlanDetails?.title ?? 'Selected Plan'}
-            </Text>
-          </Pressable>
+					<Card style={styles.selectedCard}>
+						<View style={styles.selectedRow}>
+							<View>
+								<Text style={[typography.labelS, { color: theme.textSecondary }]}>Selected</Text>
+								<Text style={[typography.headingS, { color: theme.text, marginTop: 4 }]}>
+									{selectedPlanDetails?.title}
+								</Text>
+							</View>
+							<Text style={[typography.buttonL, { color: theme.accent }]}>
+								{selectedPlanDetails?.price}
+							</Text>
+						</View>
+					</Card>
 
-          <View style={styles.secondaryActions}>
-            <Pressable onPress={() => console.log('Restore Purchases pressed')}>
-              <Text style={styles.secondaryText}>Restore Purchases</Text>
-            </Pressable>
+					<View style={styles.primaryAction}>
+						<PressableButton
+							label={`Continue with ${selectedPlanDetails?.title ?? 'Plan'}`}
+							onPress={handleSubscribe}
+							icon="arrow-forward"
+						/>
+					</View>
 
-            <Pressable onPress={() => console.log('Terms of Service pressed')}>
-              <Text style={styles.secondaryText}>Terms of Service</Text>
-            </Pressable>
-
-            <Pressable onPress={() => console.log('Privacy Policy pressed')}>
-              <Text style={styles.secondaryText}>Privacy Policy</Text>
-            </Pressable>
-          </View>
-        </View>
-      </SafeAreaView>
-    </LinearGradient>
-  );
+					<View style={styles.secondaryRow}>
+						<SecondaryButton
+							label="Restore"
+							onPress={() => console.log('Restore Purchases pressed')}
+						/>
+						<SecondaryButton
+							label="Terms"
+							onPress={() => console.log('Terms of Service pressed')}
+						/>
+						<SecondaryButton
+							label="Privacy"
+							onPress={() => console.log('Privacy Policy pressed')}
+						/>
+					</View>
+				</ScrollView>
+			</SafeAreaView>
+		</View>
+	);
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  headerActions: {
-    alignItems: 'flex-end',
-    paddingHorizontal: 20,
-    paddingTop: 4,
-  },
-  closeButton: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 18,
-    borderWidth: 1,
-    height: 36,
-    justifyContent: 'center',
-    width: 36,
-  },
-  scrollContent: {
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
-  heroCard: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 28,
-    borderWidth: 1,
-    marginBottom: 24,
-    paddingHorizontal: 24,
-    paddingVertical: 28,
-  },
-  iconShell: {
-    marginBottom: 18,
-  },
-  iconGlow: {
-    alignItems: 'center',
-    borderRadius: 34,
-    height: 68,
-    justifyContent: 'center',
-    shadowColor: '#6EE7C8',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.28,
-    shadowRadius: 18,
-    width: 68,
-  },
-  eyebrow: {
-    color: '#9EDFD3',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: '#F6FFFC',
-    fontSize: 30,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: 'rgba(230, 244, 241, 0.78)',
-    fontSize: 15,
-    lineHeight: 23,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: 22,
-  },
-  sectionTitle: {
-    color: '#F6FFFC',
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 14,
-  },
-  featuresCard: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 18,
-    rowGap: 14,
-  },
-  featureRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  checkIcon: {
-    alignItems: 'center',
-    backgroundColor: '#6EE7C8',
-    borderRadius: 11,
-    height: 22,
-    justifyContent: 'center',
-    marginRight: 12,
-    width: 22,
-  },
-  featureText: {
-    color: '#E6F4F1',
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 21,
-  },
-  planList: {
-    rowGap: 14,
-  },
-  planCard: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 18,
-  },
-  planCardSelected: {
-    backgroundColor: 'rgba(110,231,200,0.1)',
-    borderColor: '#6EE7C8',
-    shadowColor: '#6EE7C8',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-  },
-  planHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  planTitle: {
-    color: '#F6FFFC',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  planPrice: {
-    color: '#9EDFD3',
-    fontSize: 15,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  badge: {
-    backgroundColor: '#6EE7C8',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  badgeText: {
-    color: '#04232C',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  planDescription: {
-    color: 'rgba(230, 244, 241, 0.74)',
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
-    paddingRight: 28,
-  },
-  selectionIndicator: {
-    alignSelf: 'flex-end',
-  },
-  selectionIndicatorActive: {
-    transform: [{ scale: 1.04 }],
-  },
-  footer: {
-    paddingBottom: 14,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
-  ctaButton: {
-    alignItems: 'center',
-    backgroundColor: '#6EE7C8',
-    borderRadius: 18,
-    justifyContent: 'center',
-    minHeight: 58,
-    paddingHorizontal: 18,
-  },
-  ctaText: {
-    color: '#04232C',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  secondaryActions: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginTop: 18,
-    rowGap: 10,
-    columnGap: 18,
-  },
-  secondaryText: {
-    color: 'rgba(230, 244, 241, 0.76)',
-    fontSize: 13,
-    fontWeight: '600',
-  },
+	root: {
+		flex: 1,
+		overflow: 'hidden',
+	},
+	safeArea: {
+		flex: 1,
+	},
+	scroll: {
+		paddingHorizontal: spacing.lg,
+		paddingBottom: spacing.xxl,
+		paddingTop: spacing.md,
+	},
+	header: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: spacing.lg,
+	},
+	headerCopy: {
+		flex: 1,
+	},
+	iconButton: {
+		height: 40,
+		width: 40,
+		borderRadius: radius.full,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	heroCard: {
+		marginBottom: spacing.lg,
+	},
+	heroRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	heroIcon: {
+		height: 44,
+		width: 44,
+		borderRadius: radius.md,
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginRight: spacing.md,
+	},
+	section: {
+		marginBottom: spacing.lg,
+	},
+	featureCard: {
+		marginBottom: spacing.sm,
+	},
+	featureRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	featureIcon: {
+		height: 32,
+		width: 32,
+		borderRadius: radius.md,
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginRight: spacing.md,
+	},
+	planCard: {
+		marginBottom: spacing.sm,
+	},
+	planRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+	},
+	planActions: {
+		alignItems: 'flex-end',
+		gap: spacing.sm,
+	},
+	badge: {
+		borderRadius: radius.full,
+		paddingHorizontal: spacing.md,
+		paddingVertical: 6,
+	},
+	selectedCard: {
+		marginBottom: spacing.lg,
+	},
+	selectedRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+	},
+	primaryAction: {
+		marginBottom: spacing.md,
+	},
+	secondaryRow: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: spacing.sm,
+	},
+	secondaryButton: {
+		minHeight: 40,
+		paddingHorizontal: spacing.lg,
+		borderRadius: radius.full,
+		borderWidth: 1,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
 });
