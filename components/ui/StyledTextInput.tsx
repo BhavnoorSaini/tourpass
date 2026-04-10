@@ -19,6 +19,7 @@ interface StyledTextInputProps extends Omit<TextInputProps, 'style'> {
 export function StyledTextInput({ label, style, inputStyle, onFocus, onBlur, ...props }: StyledTextInputProps) {
   const theme = useTheme();
   const [focused, setFocused] = useState(false);
+  const isMultiline = Boolean(props.multiline);
 
   return (
     <View style={[styles.container, style]}>
@@ -28,6 +29,7 @@ export function StyledTextInput({ label, style, inputStyle, onFocus, onBlur, ...
       <View
         style={[
           styles.inputWrap,
+          isMultiline && styles.inputWrapMultiline,
           {
             backgroundColor: theme.surface,
             borderColor: focused ? theme.accent : border(theme),
@@ -35,7 +37,13 @@ export function StyledTextInput({ label, style, inputStyle, onFocus, onBlur, ...
         ]}
       >
         <TextInput
-          style={[typography.bodyM, styles.input, { color: theme.text }, inputStyle]}
+          style={[
+            typography.bodyM,
+            styles.input,
+            isMultiline && styles.inputMultiline,
+            { color: theme.text },
+            inputStyle,
+          ]}
           onFocus={(e) => {
             setFocused(true);
             onFocus?.(e);
@@ -66,8 +74,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
   },
+  inputWrapMultiline: {
+    height: undefined,
+    minHeight: 152,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    justifyContent: 'flex-start',
+  },
   input: {
     paddingVertical: 0,
     minHeight: 24,
+  },
+  inputMultiline: {
+    minHeight: 96,
+    textAlignVertical: 'top',
   },
 });

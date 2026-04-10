@@ -7,7 +7,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { useTheme } from '@/constants/theme';
+import { border, useTheme } from '@/constants/theme';
 import { typography } from '@/constants/typography';
 import { radius, spacing } from '@/constants/spacing';
 
@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 interface PressableButtonProps {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'ghost' | 'destructive';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
@@ -36,14 +36,21 @@ export function PressableButton({
   const [pressed, setPressed] = useState(false);
 
   const isPrimary = variant === 'primary';
+  const isSecondary = variant === 'secondary';
   const isDestructive = variant === 'destructive';
 
   const backgroundColor = isPrimary
     ? theme.accent
+    : isSecondary
+    ? theme.surface
     : 'transparent';
+
+  const borderColor = isSecondary ? border(theme) : 'transparent';
 
   const labelColor = isPrimary
     ? theme.accentText
+    : isSecondary
+    ? theme.text
     : isDestructive
     ? theme.destructive
     : theme.text;
@@ -60,6 +67,8 @@ export function PressableButton({
         styles.base,
         {
           backgroundColor,
+          borderColor,
+          borderWidth: isSecondary ? 1 : 0,
           opacity,
         },
         style,

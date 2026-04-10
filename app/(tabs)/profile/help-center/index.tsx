@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,8 +30,6 @@ function HelpRow({ label, onPress, isLast = false }: { label: string; onPress: (
     </Pressable>
   );
 }
-
-import React from 'react';
 
 export default function HelpCenter() {
     const theme = useTheme();

@@ -1,70 +1,73 @@
-import { View, Text, TextInput, Pressable } from "react-native";
-import { useState } from "react";
-import {LinearGradient} from "expo-linear-gradient";
+import React, { useMemo, useState } from 'react';
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { HelpScreenLayout, HelpSection } from '@/components/help/HelpScreenLayout';
+import { Card } from '@/components/ui/Card';
+import { PressableButton } from '@/components/ui/PressableButton';
+import { StyledTextInput } from '@/components/ui/StyledTextInput';
+import { useTheme } from '@/constants/theme';
+import { spacing } from '@/constants/spacing';
+import { typography } from '@/constants/typography';
 
 export default function ReportBugScreen() {
-    const [details, setDetails] = useState("");
+  const theme = useTheme();
+  const [details, setDetails] = useState('');
+  const isDisabled = useMemo(() => details.trim().length < 10, [details]);
 
-    return (
-        <LinearGradient
-            colors={['#0F172A', '#020617', '#000000']}
-            style={{ flex: 1 }}
-        >
-        <View style={{ padding: 20 }}>
-            <Text
-                style={{
-                    color: "#fff",
-                    fontSize: 18,
-                    fontWeight: "600",
-                    marginBottom: 12,
-                }}
-            >
-                Report a Bug
-            </Text>
+  const handleSubmit = () => {
+    Alert.alert('Bug report sent', 'Thanks for the report. We will review it and investigate.');
+    setDetails('');
+  };
 
-            <Text
-                style={{
-                    color: "#94A3B8",
-                    marginBottom: 8,
-                }}
-            >
-                Tell us what went wrong so we can fix it.
-            </Text>
+  return (
+    <HelpScreenLayout
+      title="Report a Bug"
+      eyebrow="Help Center"
+      description="Tell us what went wrong so we can reproduce the issue and ship a fix."
+      footer={
+        <Text style={[typography.bodyS, styles.footerText, { color: theme.textSecondary }]}>
+          Mention your device, the screen you were on, and the steps that caused the problem.
+        </Text>
+      }
+    >
+      <HelpSection label="Issue Details">
+        <Card>
+          <StyledTextInput
+            label="What happened?"
+            value={details}
+            onChangeText={setDetails}
+            placeholder="Describe the bug and the steps that led up to it."
+            placeholderTextColor={theme.textTertiary}
+            multiline
+            inputStyle={styles.multilineInput}
+          />
 
-            <TextInput
-                placeholder="What happened?"
-                placeholderTextColor="#94A3B8"
-                value={details}
-                onChangeText={setDetails}
-                multiline
-                style={{
-                    backgroundColor: "#1C2A44",
-                    color: "#fff",
-                    borderRadius: 14,
-                    padding: 16,
-                    minHeight: 160,
-                    textAlignVertical: "top",
-                }}
+          <View style={styles.actionBlock}>
+            <PressableButton
+              label="Submit Bug Report"
+              onPress={handleSubmit}
+              disabled={isDisabled}
             />
-
-            <Pressable
-                style={{
-                    backgroundColor: "#DC2626",
-                    borderRadius: 14,
-                    padding: 16,
-                    marginTop: 16,
-                    alignItems: "center",
-                }}
-                onPress={() => {
-                    // later: gotta submit bug
-                    setDetails("");
-                }}
-            >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>
-                    Submit Bug Report
-                </Text>
-            </Pressable>
-        </View>
-        </LinearGradient>
-    );
+          </View>
+        </Card>
+      </HelpSection>
+    </HelpScreenLayout>
+  );
 }
+
+const styles = StyleSheet.create({
+  multilineInput: {
+    lineHeight: 22,
+  },
+  actionBlock: {
+    marginTop: spacing.md,
+  },
+  footerText: {
+    textAlign: 'center',
+    paddingHorizontal: spacing.md,
+  },
+});

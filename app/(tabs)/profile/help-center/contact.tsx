@@ -1,61 +1,73 @@
-import { View, Text, TextInput, Pressable } from "react-native";
-import { useState } from "react";
-import {LinearGradient} from "expo-linear-gradient";
+import React, { useMemo, useState } from 'react';
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { HelpScreenLayout, HelpSection } from '@/components/help/HelpScreenLayout';
+import { Card } from '@/components/ui/Card';
+import { PressableButton } from '@/components/ui/PressableButton';
+import { StyledTextInput } from '@/components/ui/StyledTextInput';
+import { useTheme } from '@/constants/theme';
+import { spacing } from '@/constants/spacing';
+import { typography } from '@/constants/typography';
 
 export default function ContactSupportScreen() {
-    const [message, setMessage] = useState("");
+  const theme = useTheme();
+  const [message, setMessage] = useState('');
+  const isDisabled = useMemo(() => message.trim().length < 10, [message]);
 
-    return (
-        <LinearGradient
-            colors={['#0F172A', '#020617', '#000000']}
-            style={{ flex: 1 }}
-        >
-        <View style={{ padding: 20 }}>
-            <Text
-                style={{
-                    color: "#fff",
-                    fontSize: 18,
-                    fontWeight: "600",
-                    marginBottom: 12,
-                }}
-            >
-                Contact Support
-            </Text>
+  const handleSubmit = () => {
+    Alert.alert('Message sent', 'Our support team will review your note and follow up soon.');
+    setMessage('');
+  };
 
-            <TextInput
-                placeholder="Describe your issue..."
-                placeholderTextColor="#94A3B8"
-                value={message}
-                onChangeText={setMessage}
-                multiline
-                style={{
-                    backgroundColor: "#1C2A44",
-                    color: "#fff",
-                    borderRadius: 14,
-                    padding: 16,
-                    minHeight: 140,
-                    textAlignVertical: "top",
-                }}
+  return (
+    <HelpScreenLayout
+      title="Contact Support"
+      eyebrow="Help Center"
+      description="Share what you need help with and our team will follow up with the next steps."
+      footer={
+        <Text style={[typography.bodyS, styles.footerText, { color: theme.textSecondary }]}>
+          Include booking details, screenshots, or route names so we can help faster.
+        </Text>
+      }
+    >
+      <HelpSection label="Message">
+        <Card>
+          <StyledTextInput
+            label="How can we help?"
+            value={message}
+            onChangeText={setMessage}
+            placeholder="Describe your issue, what you expected, and what happened instead."
+            placeholderTextColor={theme.textTertiary}
+            multiline
+            inputStyle={styles.multilineInput}
+          />
+
+          <View style={styles.actionBlock}>
+            <PressableButton
+              label="Send Message"
+              onPress={handleSubmit}
+              disabled={isDisabled}
             />
-
-            <Pressable
-                style={{
-                    backgroundColor: "#2563EB",
-                    borderRadius: 14,
-                    padding: 16,
-                    marginTop: 16,
-                    alignItems: "center",
-                }}
-                onPress={() => {
-                    // later: gotta send to backend
-                    setMessage("");
-                }}
-            >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>
-                    Send Message
-                </Text>
-            </Pressable>
-        </View>
-        </LinearGradient>
-    );
+          </View>
+        </Card>
+      </HelpSection>
+    </HelpScreenLayout>
+  );
 }
+
+const styles = StyleSheet.create({
+  multilineInput: {
+    lineHeight: 22,
+  },
+  actionBlock: {
+    marginTop: spacing.md,
+  },
+  footerText: {
+    textAlign: 'center',
+    paddingHorizontal: spacing.md,
+  },
+});
