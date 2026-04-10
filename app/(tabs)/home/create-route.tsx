@@ -39,6 +39,7 @@ import type { LngLat, RouteOption, RouteStop, StoredRoute } from '@/types/route'
 import { border, useTheme } from '@/constants/theme';
 import { typography } from '@/constants/typography';
 import { radius, spacing } from '@/constants/spacing';
+import { PressableButton } from '@/components/ui/PressableButton';
 
 const accessToken = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
 if (!accessToken) throw new Error('Missing Mapbox token.');
@@ -241,6 +242,7 @@ export default function CreateRouteScreen() {
   };
 
   const overlayBg = theme.overlayBackground;
+  const overlayBorder = border(theme);
 
   return (
     <View style={styles.root}>
@@ -294,21 +296,29 @@ export default function CreateRouteScreen() {
       </MapView>
 
       <View style={[styles.topBar, { top: insets.top + spacing.md }]}>
-        <View style={[styles.integratedBar, { backgroundColor: overlayBg }]}>
-          <Pressable 
-            onPress={() => router.back()} 
-            style={styles.inlineBackBtn}
-            hitSlop={12}
-          >
-            <Ionicons name="chevron-back" size={24} color={theme.text} />
+        <View style={[styles.headerCard, { backgroundColor: overlayBg, borderColor: overlayBorder }]}>
+          <Pressable onPress={() => router.back()} style={styles.inlineBackBtn} hitSlop={12}>
+            <Ionicons name="chevron-back" size={22} color={theme.text} />
           </Pressable>
-          <View style={styles.barDivider} />
+
+          <View style={styles.headerCopy}>
+            <Text style={[typography.labelS, { color: theme.accent }]}>Guide Tools</Text>
+            <Text style={[typography.headingS, styles.headerTitle, { color: theme.text }]}>
+              Create Route
+            </Text>
+          </View>
+        </View>
+
+        <View style={[styles.titleCard, { backgroundColor: overlayBg, borderColor: overlayBorder }]}>
+          <Text style={[typography.labelS, styles.titleLabel, { color: theme.textSecondary }]}>
+            Route Name
+          </Text>
           <TextInput
             value={title}
             onChangeText={setTitle}
             placeholder="Name your route"
             placeholderTextColor={theme.textSecondary}
-            style={[typography.bodyM, { color: theme.text, flex: 1, paddingVertical: 0, paddingHorizontal: spacing.xs }]}
+            style={[typography.bodyM, styles.titleInput, { color: theme.text }]}
           />
         </View>
       </View>
@@ -316,22 +326,49 @@ export default function CreateRouteScreen() {
       {!followUser && (
         <Pressable
           onPress={() => setFollowUser(true)}
-          style={[styles.recenterBtn, { bottom: insets.bottom + 380, backgroundColor: overlayBg }]}
+          style={[
+            styles.recenterBtn,
+            {
+              top: insets.top + 152,
+              backgroundColor: overlayBg,
+              borderColor: overlayBorder,
+            },
+          ]}
         >
           <Ionicons name="locate" size={20} color={theme.text} />
         </Pressable>
       )}
 
-      <View style={[styles.composer, { bottom: insets.bottom + spacing.lg, backgroundColor: overlayBg }]}>
+      <View
+        style={[
+          styles.composer,
+          {
+            bottom: insets.bottom + spacing.lg,
+            backgroundColor: overlayBg,
+            borderColor: overlayBorder,
+          },
+        ]}
+      >
         <View style={styles.composerHeader}>
-          <View>
-            <Text style={[typography.labelS, { color: theme.accent, letterSpacing: 1.5, fontWeight: '700' }]}>BUILDER</Text>
-            <Text style={[typography.headingS, { color: theme.text, marginTop: 4 }]}>{routeStatusText}</Text>
-          </View>
+          <Text style={[typography.labelS, { color: theme.accent }]}>Builder</Text>
+          <Text style={[typography.headingS, styles.composerTitle, { color: theme.text }]}>
+            {routeStatusText}
+          </Text>
+          <Text style={[typography.bodyS, styles.composerText, { color: theme.textSecondary }]}>
+            Search for stops, add them to your route, then choose the path you want to publish.
+          </Text>
         </View>
 
         <View style={styles.searchRow}>
-          <View style={[styles.searchField, { backgroundColor: theme.background }]}>
+          <View
+            style={[
+              styles.searchField,
+              {
+                backgroundColor: theme.surface,
+                borderColor: overlayBorder,
+              },
+            ]}
+          >
             <Ionicons name="search" size={16} color={theme.textSecondary} style={{ marginRight: spacing.sm }} />
             <TextInput
               value={searchQuery}
@@ -346,16 +383,32 @@ export default function CreateRouteScreen() {
           <Pressable
             onPress={handleAddNextStop}
             disabled={!pendingStop}
-            style={[styles.addBtn, { backgroundColor: pendingStop ? theme.accent : theme.surfaceRaised }]}
+            style={[
+              styles.addBtn,
+              {
+                backgroundColor: pendingStop ? theme.accent : theme.surface,
+                borderColor: pendingStop ? theme.accent : overlayBorder,
+              },
+            ]}
           >
             <Ionicons name="add" size={22} color={pendingStop ? theme.accentText : theme.textSecondary} />
           </Pressable>
         </View>
 
         {shouldShowSuggestions && (
-          <View style={[styles.suggestions, { backgroundColor: theme.surface }]}>
+          <View style={[styles.suggestions, { backgroundColor: theme.surface, borderColor: overlayBorder }]}>
             {visibleSuggestions.map((s, i) => (
-              <Pressable key={s.mapboxId} onPress={() => handleSuggestionPress(s)} style={styles.suggItem}>
+              <Pressable
+                key={s.mapboxId}
+                onPress={() => handleSuggestionPress(s)}
+                style={[
+                  styles.suggItem,
+                  i < visibleSuggestions.length - 1 && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: theme.background,
+                  },
+                ]}
+              >
                 <Text style={[typography.bodyM, { color: theme.text }]} numberOfLines={1}>{s.name}</Text>
                 <Text style={[typography.bodyS, { color: theme.textSecondary, fontSize: 12, marginTop: 2 }]} numberOfLines={1}>{s.fullAddress}</Text>
               </Pressable>
@@ -366,7 +419,7 @@ export default function CreateRouteScreen() {
         {stops.length > 0 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stopsScroll} contentContainerStyle={styles.stopsContent}>
             {stops.map((stop, i) => (
-              <View key={stop.id} style={[styles.stopChip, { backgroundColor: theme.background }]}>
+              <View key={stop.id} style={[styles.stopChip, { backgroundColor: theme.surface, borderColor: overlayBorder }]}>
                 <Text style={[typography.labelS, { color: theme.textSecondary, marginRight: 6 }]}>{i + 1}</Text>
                 <Text style={[typography.bodyS, { color: theme.text, marginRight: 8 }]} numberOfLines={1}>{stop.name}</Text>
                 <Pressable onPress={() => setStops(s => s.filter((_, idx) => idx !== i))}>
@@ -378,21 +431,21 @@ export default function CreateRouteScreen() {
         )}
 
         <View style={styles.actions}>
-          <Pressable 
-            onPress={handlePublish} 
+          <PressableButton
+            label="Publish"
+            variant="secondary"
+            loading={publishing}
             disabled={publishing || stops.length < 2 || selectedRouteIndex === null}
-            style={[styles.actionBtn, { backgroundColor: theme.surface }]}
-          >
-            <Text style={[typography.buttonM, { color: theme.text }]}>Publish</Text>
-          </Pressable>
-          <Pressable 
-            onPress={handleStartNavigation} 
+            onPress={handlePublish}
+            style={styles.actionButton}
+          />
+          <PressableButton
+            label="Navigate"
+            icon="navigate"
             disabled={stops.length < 2}
-            style={[styles.actionBtn, { backgroundColor: theme.accent }]}
-          >
-            <Ionicons name="navigate" size={18} color={theme.accentText} style={{ marginRight: 8 }} />
-            <Text style={[typography.buttonM, { color: theme.accentText }]}>Navigate</Text>
-          </Pressable>
+            onPress={handleStartNavigation}
+            style={styles.actionButton}
+          />
         </View>
       </View>
     </View>
@@ -406,13 +459,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.lg,
     right: spacing.lg,
+    gap: spacing.sm,
   },
-  integratedBar: {
+  headerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 56,
     borderRadius: radius.xl,
     paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -425,11 +480,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  barDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    marginHorizontal: spacing.xs,
+  headerCopy: {
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
+  headerTitle: {
+    marginTop: 2,
+  },
+  titleCard: {
+    borderRadius: radius.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  titleLabel: {
+    marginBottom: spacing.xs,
+  },
+  titleInput: {
+    paddingVertical: 0,
+    width: '100%',
   },
   recenterBtn: {
     position: 'absolute',
@@ -439,6 +513,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -451,6 +526,7 @@ const styles = StyleSheet.create({
     right: spacing.lg,
     borderRadius: radius.xl,
     padding: spacing.lg,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
@@ -458,6 +534,12 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   composerHeader: { marginBottom: spacing.lg },
+  composerTitle: {
+    marginTop: spacing.xs,
+  },
+  composerText: {
+    marginTop: spacing.xs,
+  },
   searchRow: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -467,6 +549,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: radius.lg,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
@@ -477,11 +560,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   suggestions: {
     borderRadius: radius.lg,
-    padding: spacing.xs,
+    borderWidth: 1,
     marginBottom: spacing.lg,
+    overflow: 'hidden',
+    maxHeight: 220,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -489,8 +575,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   suggItem: {
-    padding: spacing.md,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   stopsScroll: { marginBottom: spacing.lg },
   stopsContent: { gap: spacing.sm, paddingRight: spacing.xl },
@@ -500,15 +586,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     height: 40,
     borderRadius: radius.full,
+    borderWidth: 1,
   },
   actions: { flexDirection: 'row', gap: spacing.md },
-  actionBtn: {
+  actionButton: {
     flex: 1,
-    height: 52,
-    borderRadius: radius.full,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   stopMarker: {
     width: 20,

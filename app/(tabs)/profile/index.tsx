@@ -16,6 +16,7 @@ import { useTheme } from '@/constants/theme';
 import { typography } from '@/constants/typography';
 import { radius, spacing } from '@/constants/spacing';
 import { PressableButton } from '@/components/ui/PressableButton';
+import { RequestStatusList } from '@/components/profile/RequestStatusList';
 
 interface ProfileRow {
   first_name: string | null;
@@ -128,7 +129,7 @@ export default function ProfileScreen() {
                   Turn your local knowledge into income.
                 </Text>
               </View>
-              
+
               <PressableButton
                 label="Apply"
                 onPress={() => router.push('/profile/become-guide')}
@@ -139,16 +140,20 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {!profile?.is_guide && <RequestStatusList />}
+
         {profile?.is_guide && (
-          <Pressable
-            onPress={() => router.push('/profile/guide-dashboard')}
-            style={({ pressed }) => [
+          <View
+            style={[
               styles.guideCard,
-              { backgroundColor: theme.surface, opacity: pressed ? 0.92 : 1 },
+              { backgroundColor: theme.surface },
             ]}
           >
-            <View style={{ flex: 1 }}>
+            <View style={styles.guideCardContent}>
               <Text style={[typography.labelS, { color: theme.accent }]}>Guide dashboard</Text>
+              <Text style={[typography.headingS, styles.guideCardTitle, { color: theme.text }]}>
+                View your guide activity
+              </Text>
               <View style={styles.guideStats}>
                 <View style={styles.guideStat}>
                   <Text style={[typography.headingM, { color: theme.text }]}>$0</Text>
@@ -159,9 +164,13 @@ export default function ProfileScreen() {
                   <Text style={[typography.labelS, { color: theme.textSecondary }]}>Active</Text>
                 </View>
               </View>
+              <PressableButton
+                label="Open Guide Dashboard"
+                onPress={() => router.push('/profile/guide-dashboard')}
+                style={styles.guideDashboardButton}
+              />
             </View>
-            <Ionicons name="arrow-forward" size={18} color={theme.text} />
-          </Pressable>
+          </View>
         )}
 
         <View style={[styles.navSection, { backgroundColor: theme.surface }]}>
@@ -242,17 +251,30 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     padding: spacing.lg,
     borderRadius: radius.lg,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
+    justifyContent: 'center',
+  },
+  guideCardContent: {
+    alignItems: 'center',
+  },
+  guideCardTitle: {
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
   guideStats: {
     flexDirection: 'row',
-    gap: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.md,
     marginTop: spacing.md,
   },
-  guideStat: {},
+  guideStat: {
+    minWidth: 92,
+    alignItems: 'center',
+  },
+  guideDashboardButton: {
+    marginTop: spacing.lg,
+    minWidth: 220,
+  },
   navSection: {
     marginTop: spacing.xl,
     marginHorizontal: spacing.lg,
