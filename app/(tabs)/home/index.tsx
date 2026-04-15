@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Map, { type MapHandle } from '@/components/map/map';
 import { useRoutes } from '@/contexts/RoutesContext';
+import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
 import {
   createSearchSessionToken,
   fetchDirectionsOptions,
@@ -31,6 +33,22 @@ export default function HomeScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { routes } = useRoutes();
+  const { user } = useAuth();
+  const [isGuide, setIsGuide] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsGuide(false); return; }
+    let cancelled = false;
+    supabase
+      .from('profiles')
+      .select('is_guide')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled) setIsGuide(!!data?.is_guide);
+      });
+    return () => { cancelled = true; };
+  }, [user]);
 
   const sessionTokenRef = useRef(createSearchSessionToken());
   const mapRef = useRef<MapHandle>(null);
@@ -180,12 +198,14 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <Pressable
-          onPress={() => router.push('/(tabs)/home/create-route')}
-          style={[styles.addButton, { backgroundColor: theme.accent }]}
-        >
-          <Ionicons name="add" size={24} color={theme.accentText} />
-        </Pressable>
+        {isGuide && (
+          <Pressable
+            onPress={() => router.push('/(tabs)/home/create-route')}
+            style={[styles.addButton, { backgroundColor: theme.accent }]}
+          >
+            <Ionicons name="add" size={24} color={theme.accentText} />
+          </Pressable>
+        )}
       </View>
 
       {/* ── Search here button ── */}
