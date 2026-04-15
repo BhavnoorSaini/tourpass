@@ -35,17 +35,19 @@ export function ScreenHeader({
         style,
       ]}
     >
-      {onBack ? (
-        <Pressable
-          onPress={onBack}
-          style={[styles.backButton, { backgroundColor: theme.surface }]}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Ionicons name="arrow-back" size={20} color={theme.text} />
-        </Pressable>
-      ) : (
-        <View style={styles.backPlaceholder} />
-      )}
+      <View style={styles.sideSlot}>
+        {onBack ? (
+          <Pressable
+            onPress={onBack}
+            style={[styles.backButton, { backgroundColor: theme.surface }]}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="arrow-back" size={20} color={theme.text} />
+          </Pressable>
+        ) : (
+          <View style={styles.backPlaceholder} />
+        )}
+      </View>
 
       <View style={styles.titleWrap}>
         <Text style={[typography.headingM, { color: theme.text }]} numberOfLines={1}>
@@ -53,7 +55,7 @@ export function ScreenHeader({
         </Text>
       </View>
 
-      <View style={styles.rightSlot}>{right ?? null}</View>
+      <View style={[styles.sideSlot, styles.rightSlot]}>{right ?? null}</View>
     </View>
   );
 }
@@ -64,6 +66,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
+  },
+  sideSlot: {
+    width: 96,
+    justifyContent: 'center',
   },
   backButton: {
     width: 36,
@@ -80,7 +86,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rightSlot: {
-    width: 36,
     alignItems: 'flex-end',
   },
 });

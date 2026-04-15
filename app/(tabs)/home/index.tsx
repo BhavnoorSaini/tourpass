@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Map, { type MapHandle } from '@/components/map/map';
 import { useRoutes } from '@/contexts/RoutesContext';
+import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
 import {
   createSearchSessionToken,
   fetchDirectionsOptions,
@@ -31,6 +33,22 @@ export default function HomeScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { routes } = useRoutes();
+  const { user } = useAuth();
+  const [isGuide, setIsGuide] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsGuide(false); return; }
+    let cancelled = false;
+    supabase
+      .from('profiles')
+      .select('is_guide')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled) setIsGuide(!!data?.is_guide);
+      });
+    return () => { cancelled = true; };
+  }, [user]);
 
   const sessionTokenRef = useRef(createSearchSessionToken());
   const mapRef = useRef<MapHandle>(null);
@@ -180,27 +198,38 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <Pressable
-          onPress={() => router.push('/(tabs)/home/create-route')}
-          style={[styles.addButton, { backgroundColor: theme.accent }]}
-        >
-          <Ionicons name="add" size={24} color={theme.accentText} />
-        </Pressable>
+        {isGuide && (
+          <Pressable
+            onPress={() => router.push('/(tabs)/home/create-route')}
+            style={[styles.addButton, { backgroundColor: theme.accent }]}
+          >
+            <Ionicons name="add" size={24} color={theme.accentText} />
+          </Pressable>
+        )}
       </View>
 
-      {/* ── Search here button ── */}
+      {/* ── Search here + Request custom tour buttons ── */}
       {!shouldShowSuggestions && !selectedRoute && (
         <View
-          style={[styles.searchHereWrap, { top: topOffset + 52 + spacing.sm }]}
+          style={[styles.actionRowWrap, { top: topOffset + 52 + spacing.sm }]}
           pointerEvents="box-none"
         >
           <Pressable
             onPress={handleSearchHere}
-            style={[styles.searchHereBtn, { backgroundColor: overlayBg }]}
+            style={[styles.pillButton, { backgroundColor: overlayBg }]}
           >
             <Ionicons name="search" size={14} color={theme.accent} />
             <Text style={[typography.buttonM, { color: theme.text, marginLeft: spacing.xs }]}>
               Search Here
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/(tabs)/home/custom-route-request' as never)}
+            style={[styles.pillButton, { backgroundColor: overlayBg }]}
+          >
+            <Ionicons name="sparkles-outline" size={14} color={theme.accent} />
+            <Text style={[typography.buttonM, { color: theme.text, marginLeft: spacing.xs }]}>
+              Request Custom Tour
             </Text>
           </Pressable>
         </View>
@@ -232,24 +261,6 @@ export default function HomeScreen() {
             Select a route to begin
           </Text>
         </View>
-      )}
-
-      {/* ── Custom tour request button ── */}
-      {!selectedRoute && (
-        <Pressable
-          onPress={() => router.push('/(tabs)/home/custom-route-request' as never)}
-          style={[styles.customRouteButton, { backgroundColor: overlayBg }]}
-        >
-          <Ionicons name="sparkles-outline" size={18} color={theme.accent} />
-          <Text
-            style={[
-              typography.buttonM,
-              { color: theme.text, marginLeft: spacing.xs },
-            ]}
-          >
-            Request Custom Tour
-          </Text>
-        </Pressable>
       )}
 
       {/* ── Selected route panel ── */}
@@ -324,13 +335,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  searchHereWrap: {
+  actionRowWrap: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: spacing.lg,
+    right: spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: spacing.sm,
   },
-  searchHereBtn: {
+  pillButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
@@ -366,21 +380,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.full,
-  },
-  customRouteButton: {
-    position: 'absolute',
-    bottom: 72 + spacing.lg,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.full,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
   },
   startPanel: {
     position: 'absolute',
