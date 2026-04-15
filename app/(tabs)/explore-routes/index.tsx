@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
@@ -23,11 +24,44 @@ interface RouteRow {
   is_public: boolean;
   created_at: string;
   route_data: {
-    stops: { name: string; fullAddress: string }[];
+    stops: { name: string; fullAddress: string; coordinate?: [number, number] }[];
     durationSeconds: number;
     distanceMeters: number;
   };
   profiles: { first_name: string | null; last_name: string | null }[] | null;
+}
+
+interface Bounds {
+  minLng: number;
+  maxLng: number;
+  minLat: number;
+  maxLat: number;
+}
+
+function parseBounds(params: Record<string, string | string[] | undefined>): Bounds | null {
+  const pick = (k: string) => {
+    const v = params[k];
+    const s = Array.isArray(v) ? v[0] : v;
+    return s && s.length > 0 ? s : undefined;
+  };
+  const minLngS = pick('minLng');
+  const maxLngS = pick('maxLng');
+  const minLatS = pick('minLat');
+  const maxLatS = pick('maxLat');
+  if (!minLngS || !maxLngS || !minLatS || !maxLatS) return null;
+  const minLng = Number(minLngS);
+  const maxLng = Number(maxLngS);
+  const minLat = Number(minLatS);
+  const maxLat = Number(maxLatS);
+  if ([minLng, maxLng, minLat, maxLat].some((n) => !Number.isFinite(n))) return null;
+  return { minLng, maxLng, minLat, maxLat };
+}
+
+function routeInBounds(route: RouteRow, b: Bounds): boolean {
+  const coord = route.route_data?.stops?.[0]?.coordinate;
+  if (!coord || coord.length !== 2) return false;
+  const [lng, lat] = coord;
+  return lng >= b.minLng && lng <= b.maxLng && lat >= b.minLat && lat <= b.maxLat;
 }
 
 function fmt(meters: number) {
@@ -122,10 +156,23 @@ function RouteCard({ route, onPress }: { route: RouteRow; onPress: () => void })
 
 export default function ExploreRoutesScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{
+    minLng?: string;
+    maxLng?: string;
+    minLat?: string;
+    maxLat?: string;
+  }>();
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const bounds = useMemo(() => parseBounds(params), [params]);
+  const visibleRoutes = useMemo(
+    () => (bounds ? routes.filter((r) => routeInBounds(r, bounds)) : routes),
+    [routes, bounds],
+  );
 
   useEffect(() => {
     const fetch = async () => {
@@ -163,6 +210,19 @@ export default function ExploreRoutesScreen() {
         <Text style={[typography.displayL, { color: theme.text }]}>Explore</Text>
       </View>
 
+      {bounds && (
+        <View style={[styles.filterBar, { backgroundColor: theme.surface }]}>
+          <Ionicons name="locate" size={14} color={theme.accent} />
+          <Text style={[typography.bodyS, { color: theme.text, flex: 1, marginLeft: spacing.xs }]}>
+            Filtered to current map area
+            {!loading ? ` · ${visibleRoutes.length} route${visibleRoutes.length === 1 ? '' : 's'}` : ''}
+          </Text>
+          <Pressable onPress={() => router.setParams({ minLng: '', maxLng: '', minLat: '', maxLat: '' })} hitSlop={8}>
+            <Text style={[typography.labelS, { color: theme.accent }]}>CLEAR</Text>
+          </Pressable>
+        </View>
+      )}
+
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator color={theme.accent} />
@@ -171,13 +231,15 @@ export default function ExploreRoutesScreen() {
         <View style={styles.centered}>
           <Text style={[typography.bodyM, { color: theme.destructive }]}>{error}</Text>
         </View>
-      ) : routes.length === 0 ? (
+      ) : visibleRoutes.length === 0 ? (
         <View style={styles.centered}>
-          <Text style={[typography.bodyM, { color: theme.textSecondary }]}>No routes found.</Text>
+          <Text style={[typography.bodyM, { color: theme.textSecondary }]}>
+            {bounds ? 'No routes start inside this map area.' : 'No routes found.'}
+          </Text>
         </View>
       ) : (
         <FlatList
-          data={routes}
+          data={visibleRoutes}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <RouteCard route={item} onPress={() => handleCardPress(item)} />}
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 100 }]}
@@ -194,6 +256,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xl,
     paddingBottom: spacing.lg,
+  },
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radius.full,
   },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: spacing.lg },

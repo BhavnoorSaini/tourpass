@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Map from '@/components/map/map';
+import Map, { type MapHandle } from '@/components/map/map';
 import { useRoutes } from '@/contexts/RoutesContext';
 import {
   createSearchSessionToken,
@@ -33,6 +33,7 @@ export default function HomeScreen() {
   const { routes } = useRoutes();
 
   const sessionTokenRef = useRef(createSearchSessionToken());
+  const mapRef = useRef<MapHandle>(null);
 
   const [query, setQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
@@ -118,12 +119,35 @@ export default function HomeScreen() {
     router.push({ pathname: '/(tabs)/home/tour', params: { routeId: selectedRouteId } });
   };
 
+  const handleSearchHere = async () => {
+    const bounds = await mapRef.current?.getVisibleBounds();
+    if (!bounds) {
+      Alert.alert('Map Error', 'Could not read the current map view.');
+      return;
+    }
+    const [c1, c2] = bounds;
+    const minLng = Math.min(c1[0], c2[0]);
+    const maxLng = Math.max(c1[0], c2[0]);
+    const minLat = Math.min(c1[1], c2[1]);
+    const maxLat = Math.max(c1[1], c2[1]);
+    router.push({
+      pathname: '/(tabs)/explore-routes',
+      params: {
+        minLng: String(minLng),
+        maxLng: String(maxLng),
+        minLat: String(minLat),
+        maxLat: String(maxLat),
+      },
+    });
+  };
+
   const overlayBg = theme.overlayBackground;
   const topOffset = insets.top + spacing.md;
 
   return (
     <View style={styles.container}>
       <Map
+        ref={mapRef}
         routePreviews={routePreviews}
         selectedRouteId={selectedRouteId}
         onSelectRoute={setSelectedRouteId}
@@ -163,6 +187,24 @@ export default function HomeScreen() {
           <Ionicons name="add" size={24} color={theme.accentText} />
         </Pressable>
       </View>
+
+      {/* ── Search here button ── */}
+      {!shouldShowSuggestions && !selectedRoute && (
+        <View
+          style={[styles.searchHereWrap, { top: topOffset + 52 + spacing.sm }]}
+          pointerEvents="box-none"
+        >
+          <Pressable
+            onPress={handleSearchHere}
+            style={[styles.searchHereBtn, { backgroundColor: overlayBg }]}
+          >
+            <Ionicons name="search" size={14} color={theme.accent} />
+            <Text style={[typography.buttonM, { color: theme.text, marginLeft: spacing.xs }]}>
+              Search Here
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* ── Suggestions ── */}
       {shouldShowSuggestions && (
@@ -281,6 +323,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
+  },
+  searchHereWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  searchHereBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radius.full,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   suggestions: {
     position: 'absolute',
