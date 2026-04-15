@@ -16,6 +16,12 @@ export default function HomeLayout() {
                     animation: 'slide_from_bottom',
                 }}
             />
+            <Stack.Screen
+                name="custom-route-request"
+                options={{
+                    animation: 'slide_from_right',
+                }}
+            />
         </Stack>
     );
 }

@@ -7,7 +7,9 @@ import { useAuth } from '@/providers/AuthProvider';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function ChatRoomScreen() {
-    const { id: tourRequestId } = useLocalSearchParams<{ id: string }>();
+    const { id, type } = useLocalSearchParams<{ id: string; type?: string }>();
+    const isCustom = type === 'custom';
+    const parentColumn = isCustom ? 'custom_route_id' : 'tour_request_id';
     const { user } = useAuth();
     const router = useRouter();
 
@@ -15,14 +17,14 @@ export default function ChatRoomScreen() {
     const [newMessage, setNewMessage] = useState('');
 
     useEffect(() => {
-        if (!user || !tourRequestId) return;
+        if (!user || !id) return;
 
         // 1. Fetch history
         const fetchMessages = async () => {
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('messages')
                 .select('*')
-                .eq('tour_request_id', tourRequestId)
+                .eq(parentColumn, id)
                 .order('created_at', { ascending: false });
 
             if (data) setMessages(data);
@@ -32,14 +34,14 @@ export default function ChatRoomScreen() {
 
         // 2. Subscribe to real-time incoming messages
         const channel = supabase
-            .channel(`chat_${tourRequestId}`)
+            .channel(`chat_${parentColumn}_${id}`)
             .on(
                 'postgres_changes',
                 {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'messages',
-                    filter: `tour_request_id=eq.${tourRequestId}`
+                    filter: `${parentColumn}=eq.${id}`
                 },
                 (payload) => {
                     // Prepend new messages because FlatList is inverted
@@ -51,7 +53,7 @@ export default function ChatRoomScreen() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [tourRequestId, user]);
+    }, [id, parentColumn, user]);
 
     const handleSend = async () => {
         if (!newMessage.trim() || !user) return;
@@ -60,11 +62,13 @@ export default function ChatRoomScreen() {
         const textToSend = newMessage.trim();
         setNewMessage('');
 
-        const { error } = await supabase.from('messages').insert({
-            tour_request_id: tourRequestId,
+        const payload: Record<string, string> = {
             sender_id: user.id,
             content: textToSend,
-        });
+        };
+        payload[parentColumn] = id;
+
+        const { error } = await supabase.from('messages').insert(payload);
 
         if (error) {
             console.error("Error sending message:", error);
@@ -80,7 +84,9 @@ export default function ChatRoomScreen() {
                 <TouchableOpacity onPress={() => router.back()} className="p-2">
                     <Text className="text-[#38BDF8] text-lg font-medium">Back</Text>
                 </TouchableOpacity>
-                <Text className="text-white text-lg font-bold ml-4">Chat</Text>
+                <Text className="text-white text-lg font-bold ml-4">
+                    {isCustom ? 'Custom Tour Chat' : 'Chat'}
+                </Text>
             </View>
 
             <KeyboardAvoidingView

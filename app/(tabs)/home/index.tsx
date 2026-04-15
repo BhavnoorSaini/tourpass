@@ -192,6 +192,24 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {/* ── Custom tour request button ── */}
+      {!selectedRoute && (
+        <Pressable
+          onPress={() => router.push('/(tabs)/home/custom-route-request' as never)}
+          style={[styles.customRouteButton, { backgroundColor: overlayBg }]}
+        >
+          <Ionicons name="sparkles-outline" size={18} color={theme.accent} />
+          <Text
+            style={[
+              typography.buttonM,
+              { color: theme.text, marginLeft: spacing.xs },
+            ]}
+          >
+            Request Custom Tour
+          </Text>
+        </Pressable>
+      )}
+
       {/* ── Selected route panel ── */}
       {selectedRoute && (
         <View style={[styles.startPanel, { backgroundColor: overlayBg }]}>
@@ -283,11 +301,26 @@ const styles = StyleSheet.create({
   },
   hint: {
     position: 'absolute',
-    bottom: 72 + spacing.lg,
+    bottom: 72 + spacing.lg + 56,
     alignSelf: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.full,
+  },
+  customRouteButton: {
+    position: 'absolute',
+    bottom: 72 + spacing.lg,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.full,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
   startPanel: {
     position: 'absolute',
