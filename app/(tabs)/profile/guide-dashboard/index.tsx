@@ -29,6 +29,17 @@ interface TourRequest {
   profiles: { first_name: string | null; last_name: string | null } | null;
 }
 
+interface CustomRouteRequest {
+  id: string;
+  status: string;
+  created_at: string;
+  tourist_id: string;
+  places: string;
+  notes: string | null;
+  request_date: string;
+  profiles: { first_name: string | null; last_name: string | null } | null;
+}
+
 function MetricTile({ label, value }: { label: string; value: string | number }) {
   const theme = useTheme();
 
@@ -88,6 +99,7 @@ export default function GuideDashboard() {
   const insets = useSafeAreaInsets();
   const [userId, setUserId] = useState<string | null>(null);
   const [requests, setRequests] = useState<TourRequest[]>([]);
+  const [customRequests, setCustomRequests] = useState<CustomRouteRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -98,6 +110,7 @@ export default function GuideDashboard() {
 
     if (!user) {
       setRequests([]);
+      setCustomRequests([]);
       setLoading(false);
       return;
     }
@@ -112,23 +125,39 @@ export default function GuideDashboard() {
 
     const routeIds = myRoutes?.map((route) => route.id) ?? [];
 
-    if (routeIds.length === 0) {
-      setRequests([]);
-      setLoading(false);
-      return;
-    }
+    const tourRequestsPromise =
+      routeIds.length === 0
+        ? Promise.resolve({ data: [] as TourRequest[], error: null })
+        : supabase
+            .from('tour_requests')
+            .select(
+              'id, status, created_at, tourist_id, route_id, routes(title), profiles!tourist_id(first_name, last_name)',
+            )
+            .in('route_id', routeIds)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
 
-    const { data, error } = await supabase
-      .from('tour_requests')
+    const customRequestsPromise = supabase
+      .from('custom_routes')
       .select(
-        'id, status, created_at, tourist_id, route_id, routes(title), profiles!tourist_id(first_name, last_name)',
+        'id, status, created_at, tourist_id, places, notes, request_date, profiles!tourist_id(first_name, last_name)',
       )
-      .in('route_id', routeIds)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
-    if (!error) {
-      setRequests((data as unknown as TourRequest[]) ?? []);
+    const [tourResult, customResult] = await Promise.all([
+      tourRequestsPromise,
+      customRequestsPromise,
+    ]);
+
+    if (!tourResult.error) {
+      setRequests((tourResult.data as unknown as TourRequest[]) ?? []);
+    }
+
+    if (!customResult.error) {
+      setCustomRequests(
+        (customResult.data as unknown as CustomRouteRequest[]) ?? [],
+      );
     }
 
     setLoading(false);
@@ -156,6 +185,57 @@ export default function GuideDashboard() {
     }
 
     setRequests((prev) => prev.filter((item) => item.id !== request.id));
+  };
+
+  const handleAcceptCustom = async (request: CustomRouteRequest) => {
+    if (!userId) return;
+
+    setActionLoading(request.id);
+
+    // First-come first-served: only accept if still pending and unclaimed.
+    const { data, error } = await supabase
+      .from('custom_routes')
+      .update({ status: 'accepted', guide_id: userId })
+      .eq('id', request.id)
+      .eq('status', 'pending')
+      .is('guide_id', null)
+      .select('id');
+
+    setActionLoading(null);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      Alert.alert(
+        'Already Taken',
+        'Another guide accepted this request first.',
+      );
+      setCustomRequests((prev) => prev.filter((item) => item.id !== request.id));
+      return;
+    }
+
+    setCustomRequests((prev) => prev.filter((item) => item.id !== request.id));
+
+    Alert.alert(
+      'Request Accepted',
+      'You are now matched with this traveler. Would you like to message them now?',
+      [
+        { text: 'Later', style: 'cancel' },
+        {
+          text: 'Open Chat',
+          onPress: () =>
+            router.push(`/message/${request.id}?type=custom` as never),
+        },
+      ],
+    );
+  };
+
+  const handleDeclineCustom = (request: CustomRouteRequest) => {
+    // Declining just hides it locally — other guides can still accept.
+    setCustomRequests((prev) => prev.filter((item) => item.id !== request.id));
   };
 
   const handleDecline = async (request: TourRequest) => {
@@ -186,7 +266,7 @@ export default function GuideDashboard() {
   };
 
   const completedCount = 0;
-  const pendingCount = requests.length;
+  const pendingCount = requests.length + customRequests.length;
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top }]}>
@@ -278,6 +358,96 @@ export default function GuideDashboard() {
                           label="Decline"
                           tone="danger"
                           onPress={() => handleDecline(request)}
+                        />
+                      </View>
+                    )}
+                  </View>
+                );
+              })
+            )}
+          </Card>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[typography.labelS, styles.sectionLabel, { color: theme.textSecondary }]}>
+            Custom Route Requests
+          </Text>
+
+          <Card innerStyle={styles.requestsInner}>
+            {loading ? (
+              <View style={styles.stateBlock}>
+                <ActivityIndicator color={theme.accent} />
+              </View>
+            ) : customRequests.length === 0 ? (
+              <View style={styles.stateBlock}>
+                <Text style={[typography.headingS, { color: theme.text }]}>
+                  No custom requests
+                </Text>
+                <Text style={[typography.bodyS, styles.stateText, { color: theme.textSecondary }]}>
+                  Tourists looking for a bespoke tour will appear here. Requests are first-come
+                  first-served.
+                </Text>
+              </View>
+            ) : (
+              customRequests.map((request, index) => {
+                const touristName =
+                  [request.profiles?.first_name, request.profiles?.last_name]
+                    .filter(Boolean)
+                    .join(' ') || 'Unknown traveler';
+                const isActioning = actionLoading === request.id;
+                const requestedOn = new Date(request.request_date);
+                const requestedLabel = Number.isNaN(requestedOn.getTime())
+                  ? request.request_date
+                  : requestedOn.toLocaleString();
+
+                return (
+                  <View
+                    key={request.id}
+                    style={[
+                      styles.requestRow,
+                      index < customRequests.length - 1 && {
+                        borderBottomWidth: StyleSheet.hairlineWidth,
+                        borderBottomColor: theme.background,
+                      },
+                    ]}
+                  >
+                    <View style={styles.requestCopy}>
+                      <Text style={[typography.headingS, { color: theme.text }]}>
+                        {touristName}
+                      </Text>
+                      <Text
+                        style={[typography.bodyS, styles.routeText, { color: theme.accent }]}
+                        numberOfLines={2}
+                      >
+                        {request.places}
+                      </Text>
+                      {request.notes ? (
+                        <Text
+                          style={[typography.bodyS, styles.dateText, { color: theme.textSecondary }]}
+                          numberOfLines={2}
+                        >
+                          {request.notes}
+                        </Text>
+                      ) : null}
+                      <Text
+                        style={[typography.bodyS, styles.dateText, { color: theme.textSecondary }]}
+                      >
+                        Requested for {requestedLabel}
+                      </Text>
+                    </View>
+
+                    {isActioning ? (
+                      <ActivityIndicator color={theme.accent} />
+                    ) : (
+                      <View style={styles.actionRow}>
+                        <InlineActionButton
+                          label="Accept"
+                          onPress={() => handleAcceptCustom(request)}
+                        />
+                        <InlineActionButton
+                          label="Dismiss"
+                          tone="danger"
+                          onPress={() => handleDeclineCustom(request)}
                         />
                       </View>
                     )}

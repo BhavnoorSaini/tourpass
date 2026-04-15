@@ -80,7 +80,8 @@ module.exports = {
         {
           accessToken: process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     experiments: {
       typedRoutes: true,

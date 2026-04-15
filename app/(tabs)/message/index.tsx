@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -16,28 +17,87 @@ import { border, useTheme } from '@/constants/theme';
 import { typography } from '@/constants/typography';
 import { spacing } from '@/constants/spacing';
 
+type ChatKind = 'tour_request' | 'custom_route';
+
+interface ChatEntry {
+  key: string;
+  id: string;
+  kind: ChatKind;
+  title: string;
+  subtitle: string;
+  sortKey: string;
+}
+
 export default function MessageScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const theme = useTheme();
-  const [chats, setChats] = useState<any[]>([]);
+  const [chats, setChats] = useState<ChatEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchChats = async () => {
-      const { data, error } = await supabase
-        .from('tour_requests')
-        .select('id, status, route:route_id (title, city)')
-        .or(`tourist_id.eq.${user.id},guide_id.eq.${user.id}`)
-        .in('status', ['accepted', 'in_progress'])
-        .order('created_at', { ascending: false });
-      if (error) console.error('Error fetching chats:', error);
-      else setChats(data || []);
+  const fetchChats = useCallback(async () => {
+    if (!user) {
+      setChats([]);
       setLoading(false);
-    };
-    fetchChats();
+      return;
+    }
+    setLoading(true);
+
+    const tourRequestsPromise = supabase
+      .from('tour_requests')
+      .select('id, status, created_at, route:route_id (title, city)')
+      .or(`tourist_id.eq.${user.id},guide_id.eq.${user.id}`)
+      .in('status', ['accepted', 'in_progress'])
+      .order('created_at', { ascending: false });
+
+    const customRoutesPromise = supabase
+      .from('custom_routes')
+      .select('id, status, created_at, places, request_date')
+      .or(`tourist_id.eq.${user.id},guide_id.eq.${user.id}`)
+      .in('status', ['accepted', 'in_progress'])
+      .order('created_at', { ascending: false });
+
+    const [tourResult, customResult] = await Promise.all([
+      tourRequestsPromise,
+      customRoutesPromise,
+    ]);
+
+    if (tourResult.error) console.error('Error fetching tour chats:', tourResult.error);
+    if (customResult.error) console.error('Error fetching custom chats:', customResult.error);
+
+    const tourEntries: ChatEntry[] =
+      (tourResult.data ?? []).map((row: any) => ({
+        key: `tr:${row.id}`,
+        id: row.id,
+        kind: 'tour_request',
+        title: row.route?.title || 'Tour',
+        subtitle: (row.status as string).replace('_', ' '),
+        sortKey: row.created_at,
+      })) ?? [];
+
+    const customEntries: ChatEntry[] =
+      (customResult.data ?? []).map((row: any) => ({
+        key: `cr:${row.id}`,
+        id: row.id,
+        kind: 'custom_route',
+        title: 'Custom Tour',
+        subtitle: row.places?.length > 48 ? `${row.places.slice(0, 48)}…` : row.places ?? '',
+        sortKey: row.created_at,
+      })) ?? [];
+
+    const merged = [...tourEntries, ...customEntries].sort((a, b) =>
+      a.sortKey < b.sortKey ? 1 : -1,
+    );
+
+    setChats(merged);
+    setLoading(false);
   }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchChats();
+    }, [fetchChats]),
+  );
 
   if (loading) {
     return (
@@ -65,17 +125,28 @@ export default function MessageScreen() {
       ) : (
         <FlatList
           data={chats}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.key}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => <ChatRow item={item} onPress={() => router.push(`/message/${item.id}`)} />}
+          renderItem={({ item }) => (
+            <ChatRow
+              item={item}
+              onPress={() =>
+                router.push(
+                  item.kind === 'custom_route'
+                    ? (`/message/${item.id}?type=custom` as never)
+                    : (`/message/${item.id}` as never),
+                )
+              }
+            />
+          )}
         />
       )}
     </SafeAreaView>
   );
 }
 
-function ChatRow({ item, onPress }: { item: any; onPress: () => void }) {
+function ChatRow({ item, onPress }: { item: ChatEntry; onPress: () => void }) {
   const theme = useTheme();
   const [pressed, setPressed] = useState(false);
 
@@ -94,10 +165,13 @@ function ChatRow({ item, onPress }: { item: any; onPress: () => void }) {
     >
       <View style={styles.chatContent}>
         <Text style={[typography.headingS, { color: theme.text }]} numberOfLines={1}>
-          {item.route?.title || 'Custom Tour'}
+          {item.title}
         </Text>
-        <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 2 }]}>
-          {item.status.replace('_', ' ')}
+        <Text
+          style={[typography.bodyS, { color: theme.textSecondary, marginTop: 2 }]}
+          numberOfLines={1}
+        >
+          {item.subtitle}
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={theme.textTertiary} />
