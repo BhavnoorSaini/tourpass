@@ -6,7 +6,7 @@ import Mapbox, {
   ShapeSource,
   StyleImport,
 } from '@rnmapbox/maps';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -40,6 +40,10 @@ interface MapProps {
   highlightedCoordinate?: LngLat | null;
   onMapPress?: () => void;
 }
+
+export type MapHandle = {
+  getVisibleBounds: () => Promise<[LngLat, LngLat] | null>;
+};
 
 const requestLocationPermission = async () => {
   if (Platform.OS === 'android') {
@@ -75,16 +79,35 @@ function yToPitch(y: number) {
   return Math.round(pitch * 10) / 10;
 }
 
-export default function Map({
-  routePreviews = [],
-  selectedRouteId = null,
-  onSelectRoute,
-  highlightedCoordinate = null,
-  onMapPress,
-}: MapProps) {
+function Map(
+  {
+    routePreviews = [],
+    selectedRouteId = null,
+    onSelectRoute,
+    highlightedCoordinate = null,
+    onMapPress,
+  }: MapProps,
+  ref: React.Ref<MapHandle>,
+) {
   const { mapStyle, lightPreset, is3DEnabled, isDarkMapMode, isStandardMapStyle } = usePreferences();
 
+  const mapViewRef = useRef<Mapbox.MapView>(null);
   const cameraRef = useRef<Mapbox.Camera>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      getVisibleBounds: async () => {
+        try {
+          const bounds = await mapViewRef.current?.getVisibleBounds();
+          return (bounds as [LngLat, LngLat] | undefined) ?? null;
+        } catch {
+          return null;
+        }
+      },
+    }),
+    [],
+  );
   const [pitch, setPitch] = useState<number>(0);
   const [followUser, setFollowUser] = useState(true);
   const routePressHandledRef = useRef(false);
@@ -199,6 +222,7 @@ export default function Map({
   return (
     <View style={styles.container}>
       <MapView
+        ref={mapViewRef}
         style={styles.map}
         styleURL={mapStyle}
         onPress={handleMapPress}
@@ -356,6 +380,8 @@ export default function Map({
     </View>
   );
 }
+
+export default forwardRef<MapHandle, MapProps>(Map);
 
 const styles = StyleSheet.create({
   container: {
