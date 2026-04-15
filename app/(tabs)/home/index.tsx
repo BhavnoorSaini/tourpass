@@ -208,19 +208,28 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* ── Search here button ── */}
+      {/* ── Search here + Request custom tour buttons ── */}
       {!shouldShowSuggestions && !selectedRoute && (
         <View
-          style={[styles.searchHereWrap, { top: topOffset + 52 + spacing.sm }]}
+          style={[styles.actionRowWrap, { top: topOffset + 52 + spacing.sm }]}
           pointerEvents="box-none"
         >
           <Pressable
             onPress={handleSearchHere}
-            style={[styles.searchHereBtn, { backgroundColor: overlayBg }]}
+            style={[styles.pillButton, { backgroundColor: overlayBg }]}
           >
             <Ionicons name="search" size={14} color={theme.accent} />
             <Text style={[typography.buttonM, { color: theme.text, marginLeft: spacing.xs }]}>
               Search Here
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/(tabs)/home/custom-route-request' as never)}
+            style={[styles.pillButton, { backgroundColor: overlayBg }]}
+          >
+            <Ionicons name="sparkles-outline" size={14} color={theme.accent} />
+            <Text style={[typography.buttonM, { color: theme.text, marginLeft: spacing.xs }]}>
+              Request Custom Tour
             </Text>
           </Pressable>
         </View>
@@ -252,24 +261,6 @@ export default function HomeScreen() {
             Select a route to begin
           </Text>
         </View>
-      )}
-
-      {/* ── Custom tour request button ── */}
-      {!selectedRoute && (
-        <Pressable
-          onPress={() => router.push('/(tabs)/home/custom-route-request' as never)}
-          style={[styles.customRouteButton, { backgroundColor: overlayBg }]}
-        >
-          <Ionicons name="sparkles-outline" size={18} color={theme.accent} />
-          <Text
-            style={[
-              typography.buttonM,
-              { color: theme.text, marginLeft: spacing.xs },
-            ]}
-          >
-            Request Custom Tour
-          </Text>
-        </Pressable>
       )}
 
       {/* ── Selected route panel ── */}
@@ -344,13 +335,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  searchHereWrap: {
+  actionRowWrap: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: spacing.lg,
+    right: spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: spacing.sm,
   },
-  searchHereBtn: {
+  pillButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
@@ -386,21 +380,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.full,
-  },
-  customRouteButton: {
-    position: 'absolute',
-    bottom: 72 + spacing.lg,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.full,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
   },
   startPanel: {
     position: 'absolute',

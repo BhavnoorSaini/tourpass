@@ -32,6 +32,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SLIDER_HEIGHT = 188;
 const MIN_PITCH = 0;
 const MAX_PITCH = 85;
+const DEFAULT_PITCH = 55;
 
 interface MapProps {
   routePreviews?: RoutePreview[];
@@ -108,7 +109,7 @@ function Map(
     }),
     [],
   );
-  const [pitch, setPitch] = useState<number>(0);
+  const [pitch, setPitch] = useState<number>(DEFAULT_PITCH);
   const [followUser, setFollowUser] = useState(true);
   const routePressHandledRef = useRef(false);
 
