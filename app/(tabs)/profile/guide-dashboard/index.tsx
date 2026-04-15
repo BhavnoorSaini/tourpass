@@ -100,6 +100,7 @@ export default function GuideDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const [requests, setRequests] = useState<TourRequest[]>([]);
   const [customRequests, setCustomRequests] = useState<CustomRouteRequest[]>([]);
+  const [completedCount, setCompletedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -145,10 +146,25 @@ export default function GuideDashboard() {
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
-    const [tourResult, customResult] = await Promise.all([
-      tourRequestsPromise,
-      customRequestsPromise,
-    ]);
+    const completedTourPromise = supabase
+      .from('tour_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('guide_id', user.id)
+      .eq('status', 'completed');
+
+    const completedCustomPromise = supabase
+      .from('custom_routes')
+      .select('id', { count: 'exact', head: true })
+      .eq('guide_id', user.id)
+      .eq('status', 'completed');
+
+    const [tourResult, customResult, completedTourResult, completedCustomResult] =
+      await Promise.all([
+        tourRequestsPromise,
+        customRequestsPromise,
+        completedTourPromise,
+        completedCustomPromise,
+      ]);
 
     if (!tourResult.error) {
       setRequests((tourResult.data as unknown as TourRequest[]) ?? []);
@@ -159,6 +175,10 @@ export default function GuideDashboard() {
         (customResult.data as unknown as CustomRouteRequest[]) ?? [],
       );
     }
+
+    const tourCompleted = completedTourResult.error ? 0 : completedTourResult.count ?? 0;
+    const customCompleted = completedCustomResult.error ? 0 : completedCustomResult.count ?? 0;
+    setCompletedCount(tourCompleted + customCompleted);
 
     setLoading(false);
   }, []);
@@ -265,7 +285,6 @@ export default function GuideDashboard() {
     ]);
   };
 
-  const completedCount = 0;
   const pendingCount = requests.length + customRequests.length;
 
   return (
@@ -289,7 +308,6 @@ export default function GuideDashboard() {
           </Text>
 
           <View style={styles.metricGrid}>
-            <MetricTile label="Total Earnings" value="$0" />
             <MetricTile label="Completed Tours" value={completedCount} />
             <MetricTile label="Pending Requests" value={pendingCount} />
           </View>

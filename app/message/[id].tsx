@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -35,9 +36,27 @@ export default function ChatRoomScreen() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [guideId, setGuideId] = useState<string | null>(null);
+  const [tourStatus, setTourStatus] = useState<string | null>(null);
+  const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
+
+    const parentTable = isCustom ? 'custom_routes' : 'tour_requests';
+
+    const fetchParent = async () => {
+      const { data } = await supabase
+        .from(parentTable)
+        .select('guide_id, status')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (data) {
+        setGuideId((data as { guide_id: string | null }).guide_id);
+        setTourStatus((data as { status: string }).status);
+      }
+    };
 
     const fetchMessages = async () => {
       const { data } = await supabase
@@ -49,6 +68,7 @@ export default function ChatRoomScreen() {
       if (data) setMessages(data as ChatMessage[]);
     };
 
+    fetchParent();
     fetchMessages();
 
     const channel = supabase
@@ -70,7 +90,42 @@ export default function ChatRoomScreen() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id, parentColumn, user]);
+  }, [id, isCustom, parentColumn, user]);
+
+  const handleCompleteTour = () => {
+    if (!user || !id || completing) return;
+
+    Alert.alert(
+      'Complete Tour',
+      'Mark this tour as completed? This will move it out of your active chats.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Complete',
+          onPress: async () => {
+            setCompleting(true);
+            const parentTable = isCustom ? 'custom_routes' : 'tour_requests';
+            const { error } = await supabase
+              .from(parentTable)
+              .update({ status: 'completed' })
+              .eq('id', id);
+            setCompleting(false);
+
+            if (error) {
+              Alert.alert('Error', error.message);
+              return;
+            }
+
+            setTourStatus('completed');
+            router.back();
+          },
+        },
+      ],
+    );
+  };
+
+  const canCompleteTour =
+    user?.id === guideId && tourStatus !== 'completed' && tourStatus !== 'cancelled';
 
   const handleSend = async () => {
     if (!newMessage.trim() || !user) return;
@@ -112,7 +167,27 @@ export default function ChatRoomScreen() {
             {isCustom ? 'Custom Tour Chat' : 'Chat'}
           </Text>
         </View>
-        <View style={styles.headerRightSlot} />
+        {canCompleteTour ? (
+          <Pressable
+            onPress={handleCompleteTour}
+            disabled={completing}
+            style={[
+              styles.completeButton,
+              {
+                borderColor: border(theme),
+                opacity: completing ? 0.5 : 1,
+              },
+            ]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="checkmark" size={16} color={theme.text} />
+            <Text style={[typography.labelS, { color: theme.text, marginLeft: 4 }]}>
+              Complete
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={styles.headerRightSlot} />
+        )}
       </View>
 
       <KeyboardAvoidingView
@@ -237,6 +312,14 @@ const styles = StyleSheet.create({
   },
   headerRightSlot: {
     width: 36,
+  },
+  completeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 32,
+    paddingHorizontal: spacing.sm + 2,
+    borderRadius: radius.full,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   listContent: {
     padding: spacing.lg,
