@@ -92,6 +92,37 @@ export default function ChatRoomScreen() {
     };
   }, [id, isCustom, parentColumn, user]);
 
+  useEffect(() => {
+    if (!id) return;
+
+    const parentTable = isCustom ? 'custom_routes' : 'tour_requests';
+    const channel = supabase
+      .channel(`chat_parent_${parentTable}_${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: parentTable,
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          const next = payload.new as { guide_id?: string | null; status?: string | null };
+          if (typeof next.guide_id !== 'undefined') {
+            setGuideId(next.guide_id ?? null);
+          }
+          if (typeof next.status === 'string') {
+            setTourStatus(next.status);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, isCustom]);
+
   const handleCompleteTour = () => {
     if (!user || !id || completing) return;
 
@@ -126,9 +157,10 @@ export default function ChatRoomScreen() {
 
   const canCompleteTour =
     user?.id === guideId && tourStatus !== 'completed' && tourStatus !== 'cancelled';
+  const isConversationClosed = tourStatus === 'completed' || tourStatus === 'cancelled';
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !user) return;
+    if (!newMessage.trim() || !user || isConversationClosed) return;
 
     const textToSend = newMessage.trim();
     setNewMessage('');
@@ -147,7 +179,7 @@ export default function ChatRoomScreen() {
     }
   };
 
-  const canSend = newMessage.trim().length > 0;
+  const canSend = !isConversationClosed && newMessage.trim().length > 0;
 
   return (
     <SafeAreaView
@@ -250,6 +282,20 @@ export default function ChatRoomScreen() {
             },
           ]}
         >
+          {isConversationClosed ? (
+            <View style={styles.closedBanner}>
+              <Ionicons
+                name={tourStatus === 'completed' ? 'checkmark-circle-outline' : 'close-circle-outline'}
+                size={16}
+                color={theme.textSecondary}
+              />
+              <Text style={[typography.bodyS, { color: theme.textSecondary }]}>
+                {tourStatus === 'completed'
+                  ? 'This tour is completed and now lives in history.'
+                  : 'This conversation is closed.'}
+              </Text>
+            </View>
+          ) : null}
           <View
             style={[
               styles.inputWrap,
@@ -259,11 +305,12 @@ export default function ChatRoomScreen() {
             <TextInput
               value={newMessage}
               onChangeText={setNewMessage}
-              placeholder="Type a message..."
+              placeholder={isConversationClosed ? 'This chat is closed' : 'Type a message...'}
               placeholderTextColor={theme.textTertiary}
               style={[typography.bodyM, styles.input, { color: theme.text }]}
               multiline
               maxLength={500}
+              editable={!isConversationClosed}
             />
           </View>
           <Pressable
@@ -351,10 +398,17 @@ const styles = StyleSheet.create({
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    flexWrap: 'wrap',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
+    gap: spacing.sm,
+  },
+  closedBanner: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   inputWrap: {
