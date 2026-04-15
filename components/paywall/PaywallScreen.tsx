@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/ui/Card';
@@ -23,12 +24,12 @@ const FEATURE_ITEMS = [
 	'Priority support',
 ];
 
-const PLAN_OPTIONS: Array<{
+const PLAN_OPTIONS: {
 	id: PlanId;
 	title: string;
 	price: string;
 	badge?: string;
-}> = [
+}[] = [
 	{
 		id: 'monthly',
 		title: 'Monthly',
@@ -103,6 +104,7 @@ export function PaywallScreen({
 	presentation = 'screen',
 }: PaywallScreenProps) {
 	const theme = useTheme();
+	const router = useRouter();
 	const [selectedPlan, setSelectedPlan] = useState<PlanId>('annual');
 	const isModal = presentation === 'modal';
 
@@ -125,6 +127,11 @@ export function PaywallScreen({
 		}
 
 		console.log('Purchase triggered for plan:', selectedPlan);
+	};
+
+	const openLegalDocument = (documentId: 'privacy-policy' | 'terms-and-conditions') => {
+		onClose?.();
+		router.push(`/profile/settings/legal/${documentId}`);
 	};
 
 	return (
@@ -233,11 +240,11 @@ export function PaywallScreen({
 						/>
 						<SecondaryButton
 							label="Terms"
-							onPress={() => console.log('Terms of Service pressed')}
+							onPress={() => openLegalDocument('terms-and-conditions')}
 						/>
 						<SecondaryButton
 							label="Privacy"
-							onPress={() => console.log('Privacy Policy pressed')}
+							onPress={() => openLegalDocument('privacy-policy')}
 						/>
 					</View>
 				</ScrollView>

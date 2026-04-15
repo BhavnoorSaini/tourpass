@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,6 +57,25 @@ function SettingsRow({ label, value, onPress, isLast = false, destructive = fals
   );
 }
 
+function HeaderActionButton({
+  label,
+  onPress,
+  loading = false,
+}: {
+  label: string;
+  onPress: () => void;
+  loading?: boolean;
+}) {
+  return (
+    <PressableButton
+      label={label}
+      onPress={onPress}
+      loading={loading}
+      style={styles.headerAction}
+    />
+  );
+}
+
 // ── Edit Profile Modal ─────────────────────────────────────────────────────
 function EditProfileModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const theme = useTheme();
@@ -99,11 +109,7 @@ function EditProfileModal({ visible, onClose }: { visible: boolean; onClose: () 
           title="Edit Profile"
           onBack={onClose}
           right={
-            <Pressable onPress={handleSave} disabled={saving} style={styles.headerAction}>
-              {saving ? <ActivityIndicator size="small" color={theme.accent} /> : (
-                <Text style={[typography.buttonM, { color: theme.accent }]}>Done</Text>
-              )}
-            </Pressable>
+            <HeaderActionButton label="Done" onPress={handleSave} loading={saving} />
           }
         />
         <View style={styles.modalContent}>
@@ -140,11 +146,7 @@ function ChangePasswordModal({ visible, onClose }: { visible: boolean; onClose: 
           title="Security"
           onBack={onClose}
           right={
-            <Pressable onPress={handleUpdate} disabled={saving} style={styles.headerAction}>
-              {saving ? <ActivityIndicator size="small" color={theme.accent} /> : (
-                <Text style={[typography.buttonM, { color: theme.accent }]}>Update</Text>
-              )}
-            </Pressable>
+            <HeaderActionButton label="Update" onPress={handleUpdate} loading={saving} />
           }
         />
         <View style={styles.modalContent}>
@@ -224,8 +226,7 @@ export default function SettingsScreen() {
         </SettingsGroup>
 
         <SettingsGroup label="System">
-          <SettingsRow label="Push Notifications" onPress={() => {}} />
-          <SettingsRow label="Data & Privacy" onPress={() => {}} isLast />
+          <SettingsRow label="Data & Privacy" onPress={() => router.push('/profile/settings/data-privacy')} isLast />
         </SettingsGroup>
 
         <SettingsGroup label="About">
@@ -272,7 +273,9 @@ const styles = StyleSheet.create({
   modal: { flex: 1 },
   modalContent: { padding: spacing.lg, marginTop: spacing.md },
   headerAction: {
-    paddingHorizontal: spacing.sm,
+    minWidth: 92,
+    height: 40,
+    paddingHorizontal: spacing.md,
   },
   footer: {
     marginTop: spacing.xxl,

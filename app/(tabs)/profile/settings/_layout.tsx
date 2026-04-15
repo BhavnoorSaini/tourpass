@@ -12,6 +12,8 @@ export default function SettingsLayout() {
                 }}
             >
                 <Stack.Screen name="index" />
+                <Stack.Screen name="data-privacy" />
+                <Stack.Screen name="legal/[document]" />
             </Stack>
         </>
     );

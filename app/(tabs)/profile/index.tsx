@@ -154,16 +154,6 @@ export default function ProfileScreen() {
               <Text style={[typography.headingS, styles.guideCardTitle, { color: theme.text }]}>
                 View your guide activity
               </Text>
-              <View style={styles.guideStats}>
-                <View style={styles.guideStat}>
-                  <Text style={[typography.headingM, { color: theme.text }]}>$0</Text>
-                  <Text style={[typography.labelS, { color: theme.textSecondary }]}>Earned</Text>
-                </View>
-                <View style={styles.guideStat}>
-                  <Text style={[typography.headingM, { color: theme.text }]}>0</Text>
-                  <Text style={[typography.labelS, { color: theme.textSecondary }]}>Active</Text>
-                </View>
-              </View>
               <PressableButton
                 label="Open Guide Dashboard"
                 onPress={() => router.push('/profile/guide-dashboard')}
