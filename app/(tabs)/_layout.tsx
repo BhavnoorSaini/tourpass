@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, useColorScheme } from 'react-native';
+import { useColorScheme } from 'react-native';
 import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/providers/AuthProvider';
@@ -10,7 +10,6 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 const TAB_ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> = {
   home: { active: 'compass', inactive: 'compass-outline' },
-  'explore-routes/index': { active: 'map', inactive: 'map-outline' },
   'message/index': { active: 'chatbubble', inactive: 'chatbubble-outline' },
   profile: { active: 'person', inactive: 'person-outline' },
 };
@@ -51,7 +50,6 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="home" options={{ title: 'Home' }} />
-      <Tabs.Screen name="explore-routes/index" options={{ title: 'Explore' }} />
       <Tabs.Screen name="message/index" options={{ title: 'Messages' }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
     </Tabs>

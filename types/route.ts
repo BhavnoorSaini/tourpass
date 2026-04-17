@@ -26,3 +26,9 @@ export interface RoutePreview {
   routeId: string;
   coordinates: LngLat[];
 }
+
+export interface RoutePin {
+  routeId: string;
+  title: string;
+  coordinate: LngLat;
+}
