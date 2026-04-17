@@ -3,6 +3,7 @@ import Mapbox, {
   LineLayer,
   LocationPuck,
   MapView,
+  MarkerView,
   ShapeSource,
   StyleImport,
 } from '@rnmapbox/maps';
@@ -13,14 +14,17 @@ import {
   PanResponder,
   PermissionsAndroid,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useTheme } from '@/constants/theme';
 import { usePreferences } from '../../contexts/PreferencesContext';
-import type { LngLat, RoutePreview } from '@/types/route';
+import type { LngLat, RoutePin, RoutePreview } from '@/types/route';
 
 const accessToken = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
 if (!accessToken) {
@@ -32,12 +36,14 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SLIDER_HEIGHT = 188;
 const MIN_PITCH = 0;
 const MAX_PITCH = 85;
-const DEFAULT_PITCH = 55;
+const DEFAULT_PITCH = 0;
 
 interface MapProps {
   routePreviews?: RoutePreview[];
+  routePins?: RoutePin[];
   selectedRouteId?: string | null;
   onSelectRoute?: (routeId: string | null) => void;
+  onPressRoutePin?: (routeId: string) => void;
   highlightedCoordinate?: LngLat | null;
   onMapPress?: () => void;
 }
@@ -83,14 +89,17 @@ function yToPitch(y: number) {
 function Map(
   {
     routePreviews = [],
+    routePins = [],
     selectedRouteId = null,
     onSelectRoute,
+    onPressRoutePin,
     highlightedCoordinate = null,
     onMapPress,
   }: MapProps,
   ref: React.Ref<MapHandle>,
 ) {
   const { mapStyle, lightPreset, is3DEnabled, isDarkMapMode, isStandardMapStyle } = usePreferences();
+  const theme = useTheme();
 
   const mapViewRef = useRef<Mapbox.MapView>(null);
   const cameraRef = useRef<Mapbox.Camera>(null);
@@ -147,6 +156,15 @@ function Map(
             iconColor: '#0f172a',
           },
     [isDarkMapMode],
+  );
+  const routePinColors = useMemo(
+    () => ({
+      chipBackground: theme.accent,
+      chipBorder: theme.surface,
+      chipShadow: theme.text,
+      chipIcon: theme.accentText,
+    }),
+    [theme],
   );
 
   useEffect(() => {
@@ -216,6 +234,17 @@ function Map(
 
     onMapPress?.();
     onSelectRoute?.(routeId);
+  };
+
+  const handleRoutePinPress = (routeId: string) => {
+    routePressHandledRef.current = true;
+    setTimeout(() => {
+      routePressHandledRef.current = false;
+    }, 0);
+
+    onMapPress?.();
+    onSelectRoute?.(null);
+    onPressRoutePin?.(routeId);
   };
 
   const activeTrackHeight = SLIDER_HEIGHT - pitchToY(pitch);
@@ -290,6 +319,40 @@ function Map(
             </ShapeSource>
           );
         })}
+
+        {routePins.map((routePin) => (
+          <MarkerView
+            key={routePin.routeId}
+            coordinate={routePin.coordinate}
+            anchor={{ x: 0.5, y: 0.5 }}
+            allowOverlap
+            allowOverlapWithPuck
+            isSelected={false}
+          >
+            <Pressable
+              collapsable={false}
+              onPress={() => handleRoutePinPress(routePin.routeId)}
+              style={styles.routePinMarker}
+            >
+              <View
+                style={[
+                  styles.routePinCircle,
+                  {
+                    backgroundColor: routePinColors.chipBackground,
+                    borderColor: routePinColors.chipBorder,
+                    shadowColor: routePinColors.chipShadow,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="map"
+                  size={14}
+                  color={routePinColors.chipIcon}
+                />
+              </View>
+            </Pressable>
+          </MarkerView>
+        ))}
       </MapView>
 
       <View style={styles.sliderContainer} pointerEvents="box-none">
@@ -468,6 +531,23 @@ const styles = StyleSheet.create({
     shadowColor: '#020617',
     shadowOpacity: 0.16,
     shadowRadius: 12,
+    elevation: 6,
+  },
+  routePinMarker: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  routePinCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
     elevation: 6,
   },
 });

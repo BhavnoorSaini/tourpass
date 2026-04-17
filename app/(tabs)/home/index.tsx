@@ -23,10 +23,35 @@ import {
   searchMapboxSuggestions,
   type MapboxSuggestion,
 } from '@/lib/mapbox';
-import type { LngLat, RoutePreview } from '@/types/route';
+import type { LngLat, RoutePin, RoutePreview } from '@/types/route';
 import { useTheme } from '@/constants/theme';
 import { typography } from '@/constants/typography';
 import { radius, spacing } from '@/constants/spacing';
+
+interface PublicRoutePinRow {
+  id: string;
+  title: string | null;
+  route_data: {
+    stops?: { coordinate?: LngLat }[];
+  } | null;
+}
+
+function buildRoutePin(route: PublicRoutePinRow): RoutePin | null {
+  const coordinate = route.route_data?.stops?.[0]?.coordinate;
+  if (
+    !coordinate ||
+    coordinate.length !== 2 ||
+    !coordinate.every((value) => Number.isFinite(value))
+  ) {
+    return null;
+  }
+
+  return {
+    routeId: route.id,
+    title: route.title?.trim() || 'Local Tour',
+    coordinate,
+  };
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -62,6 +87,7 @@ export default function HomeScreen() {
   const [highlightedCoordinate, setHighlightedCoordinate] = useState<LngLat | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [routePreviews, setRoutePreviews] = useState<RoutePreview[]>([]);
+  const [routePins, setRoutePins] = useState<RoutePin[]>([]);
   const [startPressed, setStartPressed] = useState(false);
 
   const selectedRoute = useMemo(
@@ -96,6 +122,39 @@ export default function HomeScreen() {
     build();
     return () => { cancelled = true; };
   }, [routes]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchRoutePins = async () => {
+      const { data, error } = await supabase
+        .from('routes')
+        .select('id, title, route_data')
+        .eq('is_public', true);
+
+      if (cancelled) {
+        return;
+      }
+
+      if (error) {
+        console.error('Failed to load public routes for map pins', error);
+        setRoutePins([]);
+        return;
+      }
+
+      const nextPins = ((data as PublicRoutePinRow[] | null) ?? [])
+        .map(buildRoutePin)
+        .filter((pin): pin is RoutePin => pin !== null);
+
+      setRoutePins(nextPins);
+    };
+
+    fetchRoutePins();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -149,13 +208,21 @@ export default function HomeScreen() {
     const minLat = Math.min(c1[1], c2[1]);
     const maxLat = Math.max(c1[1], c2[1]);
     router.push({
-      pathname: '/(tabs)/explore-routes',
+      pathname: '/explore-routes',
       params: {
         minLng: String(minLng),
         maxLng: String(maxLng),
         minLat: String(minLat),
         maxLat: String(maxLat),
       },
+    });
+  };
+
+  const handleRoutePinPress = (routeId: string) => {
+    collapseSearch();
+    router.push({
+      pathname: '/explore-routes',
+      params: { routeId },
     });
   };
 
@@ -167,8 +234,10 @@ export default function HomeScreen() {
       <Map
         ref={mapRef}
         routePreviews={routePreviews}
+        routePins={routePins}
         selectedRouteId={selectedRouteId}
         onSelectRoute={setSelectedRouteId}
+        onPressRoutePin={handleRoutePinPress}
         highlightedCoordinate={highlightedCoordinate}
         onMapPress={collapseSearch}
       />
