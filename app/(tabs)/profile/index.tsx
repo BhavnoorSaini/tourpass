@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,9 +9,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { fetchProfileStats, type ProfileStats } from '@/lib/profile-activity';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/constants/theme';
 import { typography } from '@/constants/typography';
@@ -23,6 +28,23 @@ interface ProfileRow {
   last_name: string | null;
   is_guide: boolean | null;
   application_status: string | null;
+  avatar_url: string | null;
+  guide_seat_status: string | null;
+}
+
+const AVATAR_BUCKET = 'avatars';
+const EMPTY_STATS: ProfileStats = {
+  toursTaken: 0,
+  citiesVisited: 0,
+};
+
+function getPhotoExtension(asset: ImagePicker.ImagePickerAsset) {
+  const fileNameExtension = asset.fileName?.split('.').pop()?.toLowerCase();
+  if (fileNameExtension) return fileNameExtension;
+
+  const mimeExtension = asset.mimeType?.split('/').pop()?.toLowerCase();
+  if (mimeExtension === 'jpeg') return 'jpg';
+  return mimeExtension || 'jpg';
 }
 
 function NavRow({ icon, label, onPress, isLast = false }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; onPress: () => void; isLast?: boolean }) {
@@ -57,22 +79,123 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [stats, setStats] = useState<ProfileStats>(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    const fetch = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, is_guide, application_status')
-        .eq('id', user.id)
-        .single();
-      if (!error) setProfile(data);
+  const fetchProfile = useCallback(async () => {
+    if (!user) {
+      setProfile(null);
+      setStats(EMPTY_STATS);
       setLoading(false);
-    };
-    fetch();
+      return;
+    }
+
+    setLoading(true);
+    const [profileResult, guideSeatResult, nextStats] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('first_name, last_name, is_guide, application_status, avatar_url')
+        .eq('id', user.id)
+        .single(),
+      supabase
+        .from('profiles')
+        .select('guide_seat_status')
+        .eq('id', user.id)
+        .single(),
+      fetchProfileStats(user.id),
+    ]);
+
+    if (!profileResult.error) {
+      setProfile({
+        ...profileResult.data,
+        guide_seat_status: guideSeatResult.error
+          ? 'inactive'
+          : guideSeatResult.data?.guide_seat_status ?? 'inactive',
+      });
+    }
+    setStats(nextStats);
+    setLoading(false);
   }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [fetchProfile]),
+  );
+
+  const pickProfilePhoto = useCallback(async () => {
+    if (!user || avatarUploading) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Photo Access Needed', 'Allow photo library access to upload a profile picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.82,
+    });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    const extension = getPhotoExtension(asset);
+    const contentType = asset.mimeType || `image/${extension === 'jpg' ? 'jpeg' : extension}`;
+    const avatarPath = `${user.id}/avatar-${Date.now()}.${extension}`;
+
+    setAvatarUploading(true);
+    try {
+      const response = await fetch(asset.uri);
+      const arrayBuffer = await response.arrayBuffer();
+      const { error: uploadError } = await supabase.storage
+        .from(AVATAR_BUCKET)
+        .upload(avatarPath, arrayBuffer, {
+          contentType,
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from(AVATAR_BUCKET)
+        .getPublicUrl(avatarPath);
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: publicUrlData.publicUrl,
+        })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
+
+      setProfile((current) =>
+        current
+          ? {
+              ...current,
+              avatar_url: publicUrlData.publicUrl,
+            }
+          : current,
+      );
+    } catch (error: any) {
+      Alert.alert('Upload Failed', error?.message || 'Could not upload your profile picture.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  }, [avatarUploading, user]);
+
+  const showPhotoOptions = useCallback(() => {
+    Alert.alert('Profile Photo', 'Upload a new profile picture.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Upload Photo', onPress: pickProfilePhoto },
+    ]);
+  }, [pickProfilePhoto]);
+
+  const guideSeatActive = profile?.guide_seat_status === 'active';
 
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'User';
   const initials = [profile?.first_name?.[0], profile?.last_name?.[0]].filter(Boolean).join('').toUpperCase() || '?';
@@ -94,9 +217,29 @@ export default function ProfileScreen() {
         </Pressable>
 
         <View style={styles.avatarBlock}>
-          <View style={[styles.avatar, { backgroundColor: theme.surface }]}>
-            <Text style={[typography.headingL, { color: theme.text }]}>{initials}</Text>
-          </View>
+          <Pressable
+            onPress={showPhotoOptions}
+            disabled={avatarUploading}
+            style={[styles.avatar, { backgroundColor: theme.surface }]}
+          >
+            {profile?.avatar_url ? (
+              <Image
+                source={{ uri: profile.avatar_url }}
+                style={styles.avatarImage}
+                contentFit="cover"
+              />
+            ) : (
+              <Text style={[typography.headingL, { color: theme.text }]}>{initials}</Text>
+            )}
+            <View style={[styles.avatarCamera, { backgroundColor: theme.accent }]}>
+              <Ionicons name="camera" size={13} color={theme.accentText} />
+            </View>
+            {avatarUploading ? (
+              <View style={styles.avatarUploadingOverlay}>
+                <ActivityIndicator color={theme.accentText} />
+              </View>
+            ) : null}
+          </Pressable>
           <Text style={[typography.headingM, { color: theme.text, marginTop: spacing.md }]}>
             {fullName}
           </Text>
@@ -107,17 +250,16 @@ export default function ProfileScreen() {
 
         <View style={[styles.statsRow, { backgroundColor: theme.surface }]}>
           <View style={styles.statItem}>
-            <Text style={[typography.headingM, { color: theme.text }]}>12</Text>
-            <Text style={[typography.labelS, { color: theme.textSecondary, marginTop: 4 }]}>Tours</Text>
+            <Text style={[typography.headingM, { color: theme.text }]}>{stats.toursTaken}</Text>
+            <Text style={[typography.labelS, { color: theme.textSecondary, marginTop: 4 }]}>Tours Taken</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: theme.background }]} />
           <View style={styles.statItem}>
-            <Text style={[typography.headingM, { color: theme.text }]}>5</Text>
+            <Text style={[typography.headingM, { color: theme.text }]}>{stats.citiesVisited}</Text>
             <Text style={[typography.labelS, { color: theme.textSecondary, marginTop: 4 }]}>Cities</Text>
           </View>
         </View>
 
-        {/* ── RESTORED PERFECT VERSION: Without 'Join' text ── */}
         {!profile?.is_guide && profile?.application_status === 'none' && (
           <View style={styles.guideJourney}>
             <View style={[styles.guideJourneyContent, { backgroundColor: theme.surface }]}>
@@ -126,7 +268,7 @@ export default function ProfileScreen() {
                   Share your city
                 </Text>
                 <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 2 }]} numberOfLines={2}>
-                  Turn your local knowledge into income.
+                  Apply for a paid guide seat and earn from your routes.
                 </Text>
               </View>
 
@@ -150,13 +292,22 @@ export default function ProfileScreen() {
             ]}
           >
             <View style={styles.guideCardContent}>
-              <Text style={[typography.labelS, { color: theme.accent }]}>Guide dashboard</Text>
+              <Text style={[typography.labelS, { color: theme.accent }]}>
+                {guideSeatActive ? 'Guide dashboard' : 'Guide seat'}
+              </Text>
               <Text style={[typography.headingS, styles.guideCardTitle, { color: theme.text }]}>
-                View your guide activity
+                {guideSeatActive ? 'View your guide activity' : 'Activate your $29.99/month guide seat'}
+              </Text>
+              <Text style={[typography.bodyS, styles.guideCardMessage, { color: theme.textSecondary }]}>
+                {guideSeatActive
+                  ? 'Your guide seat is active for route creation and paid requests.'
+                  : 'A guide seat keeps your profile listed so you can create routes and get paid by users.'}
               </Text>
               <PressableButton
-                label="Open Guide Dashboard"
-                onPress={() => router.push('/profile/guide-dashboard')}
+                label={guideSeatActive ? 'Open Guide Dashboard' : 'Manage Guide Seat'}
+                onPress={() =>
+                  router.push(guideSeatActive ? '/profile/guide-dashboard' : '/profile/payments')
+                }
                 style={styles.guideDashboardButton}
               />
             </View>
@@ -164,7 +315,9 @@ export default function ProfileScreen() {
         )}
 
         <View style={[styles.navSection, { backgroundColor: theme.surface }]}>
-          <NavRow icon="card-outline" label="Payments" onPress={() => router.push('/profile/payments')} />
+          {profile?.is_guide ? (
+            <NavRow icon="id-card-outline" label="Guide Seat" onPress={() => router.push('/profile/payments')} />
+          ) : null}
           <NavRow icon="options-outline" label="Preferences" onPress={() => router.push('/profile/preferences')} />
           <NavRow icon="help-circle-outline" label="Help Center" onPress={() => router.push('/profile/help-center')} isLast />
         </View>
@@ -195,6 +348,28 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  avatarCamera: {
+    position: 'absolute',
+    right: 6,
+    bottom: 6,
+    width: 24,
+    height: 24,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarUploadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.34)',
   },
   statsRow: {
     flexDirection: 'row',
@@ -250,6 +425,11 @@ const styles = StyleSheet.create({
   guideCardTitle: {
     marginTop: spacing.xs,
     textAlign: 'center',
+  },
+  guideCardMessage: {
+    marginTop: spacing.sm,
+    textAlign: 'center',
+    maxWidth: 280,
   },
   guideStats: {
     flexDirection: 'row',

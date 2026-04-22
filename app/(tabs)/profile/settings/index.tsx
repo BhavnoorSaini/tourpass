@@ -230,8 +230,7 @@ export default function SettingsScreen() {
         </SettingsGroup>
 
         <SettingsGroup label="About">
-          <SettingsRow label="Version" value="2.4.0" onPress={() => {}} />
-          <SettingsRow label="Support" onPress={() => {}} isLast />
+          <SettingsRow label="Version" value="2.4.0" onPress={() => {}} isLast />
         </SettingsGroup>
 
         <View style={styles.footer}>

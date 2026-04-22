@@ -30,8 +30,8 @@ export default function SetupCompleted() {
                     Application Submitted!
                 </Text>
                 <Text className="text-white/70 text-center text-base leading-6 px-4">
-                    Our team is currently reviewing your profile and route.
-                    This usually takes 24–48 hours.
+                    Our team is reviewing your guide application.
+                    This usually takes 24–48 hours. Approved guides can activate a $29.99/month Guide Seat.
                 </Text>
             </View>
 

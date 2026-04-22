@@ -9,16 +9,43 @@ import { HelpScreenLayout, HelpSection } from '@/components/help/HelpScreenLayou
 import { Card } from '@/components/ui/Card';
 import { PressableButton } from '@/components/ui/PressableButton';
 import { StyledTextInput } from '@/components/ui/StyledTextInput';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/constants/theme';
 import { spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 
 export default function ReportBugScreen() {
+  const { user } = useAuth();
   const theme = useTheme();
   const [details, setDetails] = useState('');
-  const isDisabled = useMemo(() => details.trim().length < 10, [details]);
+  const [submitting, setSubmitting] = useState(false);
+  const isDisabled = useMemo(() => submitting || details.trim().length < 10, [details, submitting]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (submitting) return;
+    if (!user) {
+      Alert.alert('Sign In Required', 'Please sign in to report a bug.');
+      return;
+    }
+
+    const trimmedDetails = details.trim();
+    setSubmitting(true);
+    const { error } = await supabase.from('help_center_submissions').insert({
+      user_id: user.id,
+      type: 'bug',
+      message: trimmedDetails,
+      metadata: {
+        source: 'report_bug',
+      },
+    });
+    setSubmitting(false);
+
+    if (error) {
+      Alert.alert('Could Not Submit', error.message);
+      return;
+    }
+
     Alert.alert('Bug report sent', 'Thanks for the report. We will review it and investigate.');
     setDetails('');
   };
@@ -51,6 +78,7 @@ export default function ReportBugScreen() {
               label="Submit Bug Report"
               onPress={handleSubmit}
               disabled={isDisabled}
+              loading={submitting}
             />
           </View>
         </Card>
