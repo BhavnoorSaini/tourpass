@@ -119,6 +119,39 @@ export default function CreateRouteScreen() {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+    const verifyGuideSeat = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('is_guide, guide_seat_status')
+        .eq('id', user.id)
+        .single();
+
+      if (cancelled) return;
+
+      if (!data?.is_guide) {
+        Alert.alert('Guide Access Required', 'Apply to become a guide before creating routes.', [
+          { text: 'OK', onPress: () => router.replace('/profile/become-guide') },
+        ]);
+        return;
+      }
+
+      if (data.guide_seat_status !== 'active') {
+        Alert.alert('Guide Seat Required', 'Activate your Guide Seat before creating routes.', [
+          { text: 'OK', onPress: () => router.replace('/profile/payments') },
+        ]);
+      }
+    };
+
+    verifyGuideSeat();
+    return () => {
+      cancelled = true;
+    };
+  }, [router, user]);
+
+  useEffect(() => {
     const trimmed = searchQuery.trim();
     if (trimmed.length < 2 || !searchFocused) {
       setSuggestions([]); setSuggestionsOpen(false); setSearchLoading(false); return;
@@ -230,6 +263,7 @@ export default function CreateRouteScreen() {
       params: {
         coordinates: JSON.stringify(stops.map((s) => ({ latitude: s.coordinate[1], longitude: s.coordinate[0] }))),
         title: title.trim(),
+        city: stops[0]?.fullAddress,
       },
     });
   };

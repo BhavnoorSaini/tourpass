@@ -1,8 +1,10 @@
-import { useEffect, useLayoutEffect, useMemo } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { MapboxNavigationView } from '@badatgil/expo-mapbox-navigation';
 import { useRoutes } from '@/contexts/RoutesContext';
+import { useAuth } from '@/providers/AuthProvider';
+import { recordRouteCompletion } from '@/lib/profile-activity';
 
 interface NavigationCoordinate {
   latitude: number;
@@ -27,10 +29,13 @@ export default function TourNavigation() {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
   const { getRouteById } = useRoutes();
+  const { user } = useAuth();
+  const completionRecordedRef = useRef(false);
 
   const routeIdParam = typeof params.routeId === 'string' ? params.routeId : undefined;
   const coordinatesParam = typeof params.coordinates === 'string' ? params.coordinates : undefined;
   const titleParam = typeof params.title === 'string' ? params.title : undefined;
+  const cityParam = typeof params.city === 'string' ? params.city : undefined;
 
   const selectedRoute = routeIdParam ? getRouteById(routeIdParam) : undefined;
   const fallbackCoordinates = useMemo(() => parseCoordinates(coordinatesParam), [coordinatesParam]);
@@ -77,6 +82,28 @@ export default function TourNavigation() {
     console.log('Navigating with coordinates:', JSON.stringify(coordinates));
   }, [coordinates]);
 
+  const handleFinalDestinationArrival = useCallback(async () => {
+    if (user && !completionRecordedRef.current) {
+      completionRecordedRef.current = true;
+      try {
+        await recordRouteCompletion({
+          userId: user.id,
+          routeId: routeIdParam,
+          routeTitle,
+          city: cityParam,
+        });
+      } catch (error) {
+        console.warn('Failed to record route completion', error);
+      }
+    }
+
+    Alert.alert(
+      'Navigation Complete',
+      `You have arrived at the final stop for ${routeTitle}.`,
+      [{ text: 'OK', onPress: () => router.back() }],
+    );
+  }, [cityParam, routeIdParam, routeTitle, router, user]);
+
   if (coordinates.length < 2) return <View style={styles.container} />;
 
   return (
@@ -88,13 +115,7 @@ export default function TourNavigation() {
         routeProfile="walking"
         onCancelNavigation={() => router.back()}
         onWaypointArrival={(e) => { console.log('Waypoint arrived:', e.nativeEvent); }}
-        onFinalDestinationArrival={() => {
-          Alert.alert(
-            'Navigation Complete',
-            `You have arrived at the final stop for ${routeTitle}.`,
-            [{ text: 'OK', onPress: () => router.back() }],
-          );
-        }}
+        onFinalDestinationArrival={handleFinalDestinationArrival}
         onRouteFailedToLoad={(e) => {
           console.error('Route failed:', e.nativeEvent?.errorMessage);
           Alert.alert('Route Error', e.nativeEvent?.errorMessage || 'Failed to load route');

@@ -9,7 +9,7 @@ import { border, useTheme } from '@/constants/theme';
 import { radius, spacing } from '@/constants/spacing';
 import { typography } from '@/constants/typography';
 
-export type PlanId = 'monthly' | 'annual';
+export type PlanId = 'monthly';
 
 interface PaywallScreenProps {
 	onClose?: () => void;
@@ -18,10 +18,9 @@ interface PaywallScreenProps {
 }
 
 const FEATURE_ITEMS = [
-	'Unlimited routes',
-	'Offline access',
-	'Premium audio tips',
-	'Priority support',
+	'Be listed as a TourPass guide',
+	'Create and publish routes',
+	'Receive paid requests from users',
 ];
 
 const PLAN_OPTIONS: {
@@ -32,14 +31,8 @@ const PLAN_OPTIONS: {
 }[] = [
 	{
 		id: 'monthly',
-		title: 'Monthly',
-		price: '$4.99 / month',
-	},
-	{
-		id: 'annual',
-		title: 'Annual',
-		price: '$39.99 / year',
-		badge: 'Best Value',
+		title: 'Guide Seat',
+		price: '$29.99 / month',
 	},
 ];
 
@@ -105,7 +98,7 @@ export function PaywallScreen({
 }: PaywallScreenProps) {
 	const theme = useTheme();
 	const router = useRouter();
-	const [selectedPlan, setSelectedPlan] = useState<PlanId>('annual');
+	const [selectedPlan, setSelectedPlan] = useState<PlanId>('monthly');
 	const isModal = presentation === 'modal';
 
 	const selectedPlanDetails = useMemo(
@@ -149,10 +142,10 @@ export function PaywallScreen({
 					<View style={styles.header}>
 						<View style={styles.headerCopy}>
 							<Text style={[typography.labelM, { color: theme.textSecondary }]}>
-								Tour Pass Premium
+								Guide Seat
 							</Text>
 							<Text style={[typography.headingM, { color: theme.text, marginTop: spacing.xs }]}>
-								Pick a plan
+								Monthly guide subscription
 							</Text>
 						</View>
 
@@ -168,10 +161,10 @@ export function PaywallScreen({
 							</View>
 							<View style={{ flex: 1 }}>
 								<Text style={[typography.headingS, { color: theme.text }]}>
-									Unlock Tour Pass Premium
+									Activate your Guide Seat
 								</Text>
 								<Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 4 }]}>
-									Choose subscription type.
+									Stay listed as a guide, create routes, and get paid by users.
 								</Text>
 							</View>
 						</View>

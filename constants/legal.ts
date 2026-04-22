@@ -126,10 +126,10 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, LegalDocument> = {
         ],
       },
       {
-        title: 'Payments and Premium Features',
+        title: 'Guide Seat Subscription',
         body: [
-          'Paid subscriptions or premium features, if offered, will be presented with pricing and billing terms at the time of purchase. Fees are generally non-refundable except where required by law or platform rules.',
-          'We may change available plans, features, or pricing in the future.',
+          'Approved guides need an active Guide Seat subscription to stay listed as a guide, create routes, and receive paid requests from users.',
+          'Guide Seat pricing and billing terms are shown at purchase. Fees are generally non-refundable except where required by law or platform rules.',
         ],
       },
       {

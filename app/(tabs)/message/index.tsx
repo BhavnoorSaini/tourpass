@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -20,6 +21,12 @@ import { radius, spacing } from '@/constants/spacing';
 import { getHiddenChatKeys, hideChatKeyForUser, type HiddenChatKey } from '@/lib/chat-history';
 
 type ChatKind = 'tour_request' | 'custom_route';
+
+interface ParticipantProfile {
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+}
 
 interface ChatEntry {
   key: HiddenChatKey;
@@ -31,6 +38,9 @@ interface ChatEntry {
   sortKey: string;
   status: string;
   isHistory: boolean;
+  participantName: string;
+  participantInitials: string;
+  participantAvatarUrl?: string;
 }
 
 interface ChatSection {
@@ -48,6 +58,38 @@ function formatStatusLabel(status: string) {
 function trimText(value: string | null | undefined, maxLength: number) {
   if (!value) return undefined;
   return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
+}
+
+function normalizeRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function profileDisplayName(profile: ParticipantProfile | null, fallback: string) {
+  const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
+  return name || fallback;
+}
+
+function profileInitials(profile: ParticipantProfile | null, fallback: string) {
+  const initials = [profile?.first_name?.[0], profile?.last_name?.[0]]
+    .filter(Boolean)
+    .join('')
+    .toUpperCase();
+
+  if (initials) return initials;
+  return fallback.charAt(0).toUpperCase();
+}
+
+function otherParticipant(row: any, userId: string, fallbackByRole: { guide: string; traveler: string }) {
+  const isTourist = row.tourist_id === userId;
+  const profile = normalizeRelation<ParticipantProfile>(isTourist ? row.guide : row.tourist);
+  const fallback = isTourist ? fallbackByRole.guide : fallbackByRole.traveler;
+
+  return {
+    profile,
+    name: profileDisplayName(profile, fallback),
+    initials: profileInitials(profile, fallback),
+  };
 }
 
 export default function MessageScreen() {
@@ -73,14 +115,18 @@ export default function MessageScreen() {
 
     const tourRequestsPromise = supabase
       .from('tour_requests')
-      .select('id, status, created_at, route:route_id (title, city)')
+      .select(
+        'id, status, created_at, tourist_id, guide_id, route:route_id (title, city), tourist:profiles!tourist_id(first_name, last_name, avatar_url), guide:profiles!guide_id(first_name, last_name, avatar_url)',
+      )
       .or(`tourist_id.eq.${user.id},guide_id.eq.${user.id}`)
       .in('status', ['accepted', 'in_progress', 'completed'])
       .order('created_at', { ascending: false });
 
     const customRoutesPromise = supabase
       .from('custom_routes')
-      .select('id, status, created_at, places, request_date')
+      .select(
+        'id, status, created_at, tourist_id, guide_id, places, request_date, tourist:profiles!tourist_id(first_name, last_name, avatar_url), guide:profiles!guide_id(first_name, last_name, avatar_url)',
+      )
       .or(`tourist_id.eq.${user.id},guide_id.eq.${user.id}`)
       .in('status', ['accepted', 'in_progress', 'completed'])
       .order('created_at', { ascending: false });
@@ -93,29 +139,49 @@ export default function MessageScreen() {
     if (tourResult.error) console.error('Error fetching tour chats:', tourResult.error);
     if (customResult.error) console.error('Error fetching custom chats:', customResult.error);
 
-    const tourEntries: ChatEntry[] = (tourResult.data ?? []).map((row: any) => ({
-      key: `tr:${row.id}`,
-      id: row.id,
-      kind: 'tour_request',
-      title: row.route?.title || row.route?.city || 'Tour',
-      subtitle: formatStatusLabel(row.status as string),
-      details: trimText(row.route?.city, 48),
-      sortKey: row.created_at,
-      status: row.status,
-      isHistory: row.status === 'completed',
-    }));
+    const tourEntries: ChatEntry[] = (tourResult.data ?? []).map((row: any) => {
+      const participant = otherParticipant(row, user.id, {
+        guide: 'Guide',
+        traveler: 'Traveler',
+      });
 
-    const customEntries: ChatEntry[] = (customResult.data ?? []).map((row: any) => ({
-      key: `cr:${row.id}`,
-      id: row.id,
-      kind: 'custom_route',
-      title: 'Custom Tour',
-      subtitle: formatStatusLabel(row.status as string),
-      details: trimText(row.places, 48),
-      sortKey: row.created_at,
-      status: row.status,
-      isHistory: row.status === 'completed',
-    }));
+      return {
+        key: `tr:${row.id}`,
+        id: row.id,
+        kind: 'tour_request',
+        title: row.route?.title || row.route?.city || 'Tour',
+        subtitle: `${participant.name} • ${formatStatusLabel(row.status as string)}`,
+        details: trimText(row.route?.city, 48),
+        sortKey: row.created_at,
+        status: row.status,
+        isHistory: row.status === 'completed',
+        participantName: participant.name,
+        participantInitials: participant.initials,
+        participantAvatarUrl: participant.profile?.avatar_url ?? undefined,
+      };
+    });
+
+    const customEntries: ChatEntry[] = (customResult.data ?? []).map((row: any) => {
+      const participant = otherParticipant(row, user.id, {
+        guide: 'Guide',
+        traveler: 'Traveler',
+      });
+
+      return {
+        key: `cr:${row.id}`,
+        id: row.id,
+        kind: 'custom_route',
+        title: 'Custom Tour',
+        subtitle: `${participant.name} • ${formatStatusLabel(row.status as string)}`,
+        details: trimText(row.places, 48),
+        sortKey: row.created_at,
+        status: row.status,
+        isHistory: row.status === 'completed',
+        participantName: participant.name,
+        participantInitials: participant.initials,
+        participantAvatarUrl: participant.profile?.avatar_url ?? undefined,
+      };
+    });
 
     const hiddenKeySet = new Set(hiddenChatKeys);
     const merged = [...tourEntries, ...customEntries]
@@ -266,20 +332,36 @@ function ChatRow({
         style={styles.chatPressable}
       >
         <View style={styles.chatContent}>
-          <Text style={[typography.headingS, { color: theme.text }]} numberOfLines={1}>
-            {item.title}
-          </Text>
-          <Text style={[typography.bodyS, styles.subtitle, { color: theme.textSecondary }]}>
-            {item.subtitle}
-          </Text>
-          {item.details ? (
-            <Text
-              style={[typography.bodyS, { color: theme.textTertiary, marginTop: 2 }]}
-              numberOfLines={1}
-            >
-              {item.details}
+          <View style={[styles.avatar, { backgroundColor: theme.surface }]}>
+            {item.participantAvatarUrl ? (
+              <Image
+                source={{ uri: item.participantAvatarUrl }}
+                style={styles.avatarImage}
+                contentFit="cover"
+                accessibilityLabel={`${item.participantName} profile picture`}
+              />
+            ) : (
+              <Text style={[typography.labelM, { color: theme.text }]}>
+                {item.participantInitials}
+              </Text>
+            )}
+          </View>
+          <View style={styles.chatCopy}>
+            <Text style={[typography.headingS, { color: theme.text }]} numberOfLines={1}>
+              {item.title}
             </Text>
-          ) : null}
+            <Text style={[typography.bodyS, styles.subtitle, { color: theme.textSecondary }]}>
+              {item.subtitle}
+            </Text>
+            {item.details ? (
+              <Text
+                style={[typography.bodyS, { color: theme.textTertiary, marginTop: 2 }]}
+                numberOfLines={1}
+              >
+                {item.details}
+              </Text>
+            ) : null}
+          </View>
         </View>
         <Ionicons name="chevron-forward" size={16} color={theme.textTertiary} />
       </Pressable>
@@ -345,7 +427,26 @@ const styles = StyleSheet.create({
   },
   chatContent: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingRight: spacing.md,
+  },
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  chatCopy: {
+    flex: 1,
   },
   subtitle: {
     marginTop: 2,

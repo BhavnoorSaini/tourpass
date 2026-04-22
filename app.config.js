@@ -12,6 +12,8 @@ module.exports = {
       supportsTablet: true,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "This app uses location to show your position on the map.",
+        NSPhotoLibraryUsageDescription: "TourPass uses your photo library so you can choose a profile picture.",
+        NSPhotoLibraryAddUsageDescription: "TourPass may save updated profile photos to your photo library if you choose to do so.",
         MBXAccessToken: process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN,
         UIBackgroundModes: [
           "audio",
@@ -75,6 +77,12 @@ module.exports = {
         }
       ],
       "expo-font",
+      [
+        "expo-image-picker",
+        {
+          photosPermission: "Allow TourPass to let you choose a profile photo."
+        }
+      ],
       [
         "./plugins/withMapboxAndroidToken",
         {

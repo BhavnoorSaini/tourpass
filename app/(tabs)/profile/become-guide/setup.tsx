@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/constants/theme";
 import { typography } from "@/constants/typography";
-import { radius, spacing } from "@/constants/spacing";
+import { spacing } from "@/constants/spacing";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { StyledTextInput } from "@/components/ui/StyledTextInput";
@@ -60,7 +59,7 @@ export default function GuideSetup() {
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <View style={styles.intro}>
                     <Text style={[typography.bodyM, { color: theme.textSecondary }]}>
-                        Help travelers get to know you better.
+                        Help travelers get to know you better. If approved, you can activate a $29.99/month Guide Seat to create routes and receive paid requests.
                     </Text>
                 </View>
 
