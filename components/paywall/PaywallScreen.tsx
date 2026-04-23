@@ -31,7 +31,7 @@ const PLAN_OPTIONS: {
 }[] = [
 	{
 		id: 'monthly',
-		title: 'Guide Seat',
+		title: 'Guide Billing',
 		price: '$29.99 / month',
 	},
 ];
@@ -142,7 +142,7 @@ export function PaywallScreen({
 					<View style={styles.header}>
 						<View style={styles.headerCopy}>
 							<Text style={[typography.labelM, { color: theme.textSecondary }]}>
-								Guide Seat
+								Guide Billing
 							</Text>
 							<Text style={[typography.headingM, { color: theme.text, marginTop: spacing.xs }]}>
 								Monthly guide subscription
@@ -161,7 +161,7 @@ export function PaywallScreen({
 							</View>
 							<View style={{ flex: 1 }}>
 								<Text style={[typography.headingS, { color: theme.text }]}>
-									Activate your Guide Seat
+									Set up guide billing
 								</Text>
 								<Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 4 }]}>
 									Stay listed as a guide, create routes, and get paid by users.

@@ -59,7 +59,7 @@ export default function GuideSetup() {
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <View style={styles.intro}>
                     <Text style={[typography.bodyM, { color: theme.textSecondary }]}>
-                        Help travelers get to know you better. If approved, you can activate a $29.99/month Guide Seat to create routes and receive paid requests.
+                        Help travelers get to know you better. Approved guides are billed $29.99/month to create routes and receive paid requests.
                     </Text>
                 </View>
 

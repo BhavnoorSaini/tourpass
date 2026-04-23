@@ -40,7 +40,7 @@ export default function GuideIntro() {
                         Become a TourPass guide
                     </Text>
                     <Text style={[typography.bodyM, { color: theme.textSecondary, marginTop: spacing.sm }]}>
-                        Apply for a monthly Guide Seat to create routes, accept requests, and get paid by users.
+                        Apply to become a guide, create routes, and get paid by users.
                     </Text>
                 </View>
 
@@ -66,12 +66,12 @@ export default function GuideIntro() {
                 </View>
 
                 <View style={[styles.seatCard, { backgroundColor: theme.surface }]}>
-                    <Text style={[typography.labelS, { color: theme.accent }]}>Guide Seat</Text>
+                    <Text style={[typography.labelS, { color: theme.accent }]}>Guide Billing</Text>
                     <Text style={[typography.headingM, { color: theme.text, marginTop: spacing.xs }]}>
                         $29.99 / month
                     </Text>
                     <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: spacing.sm }]}>
-                        Approved guides need an active Guide Seat to stay listed, create routes, and receive paid requests.
+                        Approved guides are billed monthly to stay on the app, create routes, and receive paid requests.
                     </Text>
                 </View>
 
@@ -81,7 +81,7 @@ export default function GuideIntro() {
                         onPress={() => router.push("/profile/become-guide/setup")} 
                     />
                     <Text style={[typography.bodyS, { color: theme.textTertiary, textAlign: 'center', marginTop: spacing.md }]}>
-                        Application takes less than 5 minutes. Subscription starts after approval.
+                        Application takes less than 5 minutes. Billing begins after approval.
                     </Text>
                 </View>
             </ScrollView>

@@ -29,23 +29,19 @@ type SavedCard = {
   brand: string;
   last4: string;
   expiry: string;
-  label: string;
   isDefault?: boolean;
 };
 
-interface GuideSeatProfile {
+interface GuideProfile {
   is_guide: boolean | null;
-  guide_seat_status: string | null;
-  guide_seat_activated_at: string | null;
 }
 
-const GUIDE_SEAT_PRICE_CENTS = 2999;
-const GUIDE_SEAT_PRICE_LABEL = '$29.99 / month';
+const GUIDE_BILLING_RATE = '$29.99 / month';
 
-const GUIDE_SEAT_FEATURES = [
+const GUIDE_BILLING_FEATURES = [
   'Be listed as a TourPass guide',
   'Create and publish routes',
-  'Receive paid requests from users',
+  'Get paid by users',
 ];
 
 const INITIAL_CARDS: SavedCard[] = [
@@ -54,7 +50,6 @@ const INITIAL_CARDS: SavedCard[] = [
     brand: 'Visa',
     last4: '4242',
     expiry: '08/28',
-    label: 'Guide payouts card',
     isDefault: true,
   },
 ];
@@ -74,12 +69,6 @@ function formatExpiry(value: string) {
   return `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2)}`;
 }
 
-function nextMonthlyPeriodEnd() {
-  const end = new Date();
-  end.setMonth(end.getMonth() + 1);
-  return end.toISOString();
-}
-
 function PaymentMethodButton({
   card,
   selected,
@@ -97,10 +86,7 @@ function PaymentMethodButton({
   };
 
   return (
-    <Card
-      onPress={onPress}
-      style={cardStyle}
-    >
+    <Card onPress={onPress} style={cardStyle}>
       <View style={styles.cardRow}>
         <View style={styles.cardMeta}>
           <View style={styles.cardTopRow}>
@@ -131,14 +117,13 @@ function PaymentMethodButton({
   );
 }
 
-export default function GuideSeatScreen() {
+export default function GuideBillingScreen() {
   const { user } = useAuth();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [profile, setProfile] = useState<GuideSeatProfile | null>(null);
+  const [profile, setProfile] = useState<GuideProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [subscribing, setSubscribing] = useState(false);
   const [cards, setCards] = useState(INITIAL_CARDS);
   const [selectedCardId, setSelectedCardId] = useState(INITIAL_CARDS[0]?.id ?? '');
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
@@ -147,7 +132,6 @@ export default function GuideSeatScreen() {
   const [cvv, setCvv] = useState('');
 
   const selectedCard = cards.find((card) => card.id === selectedCardId) ?? cards[0];
-  const isSeatActive = profile?.guide_seat_status === 'active';
   const isAddCardValid =
     cardNumber.trim().length >= 19 && expiry.trim().length === 5 && cvv.trim().length >= 3;
 
@@ -161,7 +145,7 @@ export default function GuideSeatScreen() {
     setLoading(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('is_guide, guide_seat_status, guide_seat_activated_at')
+      .select('is_guide')
       .eq('id', user.id)
       .single();
 
@@ -201,7 +185,6 @@ export default function GuideSeatScreen() {
         brand: 'Card',
         last4,
         expiry,
-        label: 'Guide seat payment method',
       },
       ...current,
     ]);
@@ -211,56 +194,6 @@ export default function GuideSeatScreen() {
     setCvv('');
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsAddCardOpen(false);
-  };
-
-  const handleSubscribe = async () => {
-    if (!user || !selectedCard || subscribing || isSeatActive) return;
-
-    setSubscribing(true);
-    const activatedAt = new Date().toISOString();
-
-    try {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          guide_seat_status: 'active',
-          guide_seat_plan: 'monthly',
-          guide_seat_price_cents: GUIDE_SEAT_PRICE_CENTS,
-          guide_seat_activated_at: activatedAt,
-        })
-        .eq('id', user.id);
-
-      if (profileError) throw profileError;
-
-      const { error: subscriptionError } = await supabase
-        .from('guide_seat_subscriptions')
-        .insert({
-          guide_id: user.id,
-          status: 'active',
-          plan_name: 'monthly',
-          price_cents: GUIDE_SEAT_PRICE_CENTS,
-          started_at: activatedAt,
-          current_period_started_at: activatedAt,
-          current_period_ends_at: nextMonthlyPeriodEnd(),
-        });
-
-      if (subscriptionError) throw subscriptionError;
-
-      setProfile((current) =>
-        current
-          ? {
-              ...current,
-              guide_seat_status: 'active',
-              guide_seat_activated_at: activatedAt,
-            }
-          : current,
-      );
-      Alert.alert('Guide Seat Active', 'Your guide seat is active for route creation and paid requests.');
-    } catch (error: any) {
-      Alert.alert('Subscription Error', error?.message || 'Could not activate your guide seat.');
-    } finally {
-      setSubscribing(false);
-    }
   };
 
   if (loading) {
@@ -277,7 +210,7 @@ export default function GuideSeatScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[typography.labelM, { color: theme.textSecondary }]}>Guide Seat</Text>
+              <Text style={[typography.labelM, { color: theme.textSecondary }]}>Guide Billing</Text>
               <Text style={[typography.headingM, { color: theme.text, marginTop: spacing.xs }]}>
                 Guide access required
               </Text>
@@ -292,7 +225,7 @@ export default function GuideSeatScreen() {
               This page is for approved guides.
             </Text>
             <Text style={[typography.bodyS, styles.cardCopy, { color: theme.textSecondary }]}>
-              Apply to become a guide before activating a monthly Guide Seat.
+              Apply to become a guide before managing billing details.
             </Text>
             <PressableButton
               label="Apply to Become a Guide"
@@ -310,9 +243,9 @@ export default function GuideSeatScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={[typography.labelM, { color: theme.textSecondary }]}>Guide Seat</Text>
+            <Text style={[typography.labelM, { color: theme.textSecondary }]}>Guide Billing</Text>
             <Text style={[typography.headingM, { color: theme.text, marginTop: spacing.xs }]}>
-              Manage your guide subscription
+              Manage your billing details
             </Text>
           </View>
 
@@ -321,27 +254,25 @@ export default function GuideSeatScreen() {
           </Pressable>
         </View>
 
-        <Card style={styles.seatCard}>
-          <View style={styles.seatHeader}>
-            <View style={[styles.seatIcon, { backgroundColor: `${theme.accent}18` }]}>
-              <Ionicons name="id-card-outline" size={22} color={theme.accent} />
+        <Card style={styles.billingCard}>
+          <View style={styles.billingHeader}>
+            <View style={[styles.billingIcon, { backgroundColor: `${theme.accent}18` }]}>
+              <Ionicons name="card-outline" size={22} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[typography.labelS, { color: theme.accent }]}>
-                {isSeatActive ? 'Active Seat' : 'Monthly Seat'}
-              </Text>
+              <Text style={[typography.labelS, { color: theme.accent }]}>Guide Billing</Text>
               <Text style={[typography.headingM, { color: theme.text, marginTop: spacing.xs }]}>
-                {GUIDE_SEAT_PRICE_LABEL}
+                {GUIDE_BILLING_RATE}
               </Text>
             </View>
           </View>
 
           <Text style={[typography.bodyS, styles.cardCopy, { color: theme.textSecondary }]}>
-            Your Guide Seat keeps your guide profile listed, unlocks route creation, and lets you receive paid requests from users.
+            Guide accounts are billed monthly so you can stay on the app, create routes, and get paid by users.
           </Text>
 
           <View style={styles.featureList}>
-            {GUIDE_SEAT_FEATURES.map((feature) => (
+            {GUIDE_BILLING_FEATURES.map((feature) => (
               <View key={feature} style={styles.featureRow}>
                 <View style={[styles.featureIcon, { backgroundColor: `${theme.accent}18` }]}>
                   <Ionicons name="checkmark" size={14} color={theme.accent} />
@@ -425,30 +356,15 @@ export default function GuideSeatScreen() {
         <Card style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[typography.headingS, { color: theme.text }]}>
-                {isSeatActive ? 'Guide Seat active' : 'Activate Guide Seat'}
-              </Text>
+              <Text style={[typography.headingS, { color: theme.text }]}>Current billing rate</Text>
               <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 4 }]}>
                 {selectedCard
-                  ? `${selectedCard.brand} ending in ${selectedCard.last4}`
-                  : 'Add a card to subscribe'}
+                  ? `${GUIDE_BILLING_RATE} on ${selectedCard.brand} ending in ${selectedCard.last4}`
+                  : GUIDE_BILLING_RATE}
               </Text>
             </View>
-            <Ionicons
-              name={isSeatActive ? 'checkmark-circle' : 'ellipse-outline'}
-              size={20}
-              color={isSeatActive ? theme.accent : theme.textSecondary}
-            />
+            <Ionicons name="checkmark-circle" size={20} color={theme.accent} />
           </View>
-
-          <PressableButton
-            label={isSeatActive ? 'Guide Seat Active' : 'Subscribe for $29.99/month'}
-            onPress={handleSubscribe}
-            disabled={isSeatActive || !selectedCard}
-            loading={subscribing}
-            style={styles.fullWidthButton}
-            icon={isSeatActive ? undefined : 'arrow-forward'}
-          />
         </Card>
       </ScrollView>
     </View>
@@ -480,14 +396,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  seatCard: {
+  billingCard: {
     marginBottom: spacing.lg,
   },
-  seatHeader: {
+  billingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  seatIcon: {
+  billingIcon: {
     height: 44,
     width: 44,
     borderRadius: radius.md,
@@ -566,7 +482,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.lg,
   },
   fullWidthButton: {
     marginTop: spacing.lg,

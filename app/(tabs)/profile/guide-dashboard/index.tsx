@@ -101,7 +101,6 @@ export default function GuideDashboard() {
   const [requests, setRequests] = useState<TourRequest[]>([]);
   const [customRequests, setCustomRequests] = useState<CustomRouteRequest[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
-  const [guideSeatActive, setGuideSeatActive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -119,14 +118,6 @@ export default function GuideDashboard() {
 
     setUserId(user.id);
     setLoading(true);
-
-    const { data: guideProfile } = await supabase
-      .from('profiles')
-      .select('guide_seat_status')
-      .eq('id', user.id)
-      .single();
-
-    setGuideSeatActive(guideProfile?.guide_seat_status === 'active');
 
     const { data: myRoutes } = await supabase
       .from('routes')
@@ -199,11 +190,6 @@ export default function GuideDashboard() {
   );
 
   const handleAccept = async (request: TourRequest) => {
-    if (!guideSeatActive) {
-      Alert.alert('Guide Seat Required', 'Activate your Guide Seat before accepting paid tour requests.');
-      return;
-    }
-
     setActionLoading(request.id);
 
     const { error } = await supabase
@@ -223,10 +209,6 @@ export default function GuideDashboard() {
 
   const handleAcceptCustom = async (request: CustomRouteRequest) => {
     if (!userId) return;
-    if (!guideSeatActive) {
-      Alert.alert('Guide Seat Required', 'Activate your Guide Seat before accepting paid custom route requests.');
-      return;
-    }
 
     setActionLoading(request.id);
 
@@ -496,15 +478,11 @@ export default function GuideDashboard() {
 
         <View style={styles.actionArea}>
           <Text style={[typography.bodyS, styles.actionText, { color: theme.textSecondary }]}>
-            {guideSeatActive
-              ? 'Create a new route to keep your guide profile fresh and bookable.'
-              : 'Activate your Guide Seat to create routes and accept paid requests.'}
+            Create a new route to keep your guide profile fresh and bookable.
           </Text>
           <PressableButton
-            label={guideSeatActive ? 'Create New Route' : 'Activate Guide Seat'}
-            onPress={() =>
-              router.push(guideSeatActive ? '/(tabs)/home/create-route' : '/profile/payments')
-            }
+            label="Create New Route"
+            onPress={() => router.push('/(tabs)/home/create-route')}
             icon="arrow-forward"
             style={styles.createButton}
           />

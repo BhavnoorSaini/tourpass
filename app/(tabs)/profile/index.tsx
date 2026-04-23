@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -29,7 +30,6 @@ interface ProfileRow {
   is_guide: boolean | null;
   application_status: string | null;
   avatar_url: string | null;
-  guide_seat_status: string | null;
 }
 
 const AVATAR_BUCKET = 'avatars';
@@ -92,28 +92,16 @@ export default function ProfileScreen() {
     }
 
     setLoading(true);
-    const [profileResult, guideSeatResult, nextStats] = await Promise.all([
+    const [profileResult, nextStats] = await Promise.all([
       supabase
         .from('profiles')
         .select('first_name, last_name, is_guide, application_status, avatar_url')
         .eq('id', user.id)
         .single(),
-      supabase
-        .from('profiles')
-        .select('guide_seat_status')
-        .eq('id', user.id)
-        .single(),
       fetchProfileStats(user.id),
     ]);
 
-    if (!profileResult.error) {
-      setProfile({
-        ...profileResult.data,
-        guide_seat_status: guideSeatResult.error
-          ? 'inactive'
-          : guideSeatResult.data?.guide_seat_status ?? 'inactive',
-      });
-    }
+    if (!profileResult.error) setProfile(profileResult.data);
     setStats(nextStats);
     setLoading(false);
   }, [user]);
@@ -124,23 +112,58 @@ export default function ProfileScreen() {
     }, [fetchProfile]),
   );
 
+  const ensurePhotoLibraryPermission = useCallback(async () => {
+    const currentPermission = await ImagePicker.getMediaLibraryPermissionsAsync();
+    if (currentPermission.granted) return true;
+
+    if (!currentPermission.canAskAgain) {
+      Alert.alert(
+        'Photo Access Needed',
+        'Allow photo library access in Settings to upload a profile picture.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ],
+      );
+      return false;
+    }
+
+    const requestedPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (requestedPermission.granted) return true;
+
+    Alert.alert(
+      'Photo Access Needed',
+      'Allow photo library access to upload a profile picture.',
+      requestedPermission.canAskAgain
+        ? [{ text: 'OK', style: 'default' }]
+        : [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
+    );
+    return false;
+  }, []);
+
   const pickProfilePhoto = useCallback(async () => {
     if (!user || avatarUploading) return;
 
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Photo Access Needed', 'Allow photo library access to upload a profile picture.');
+    const hasPermission = await ensurePhotoLibraryPermission();
+    if (!hasPermission) return;
+
+    let result: ImagePicker.ImagePickerResult;
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.82,
+      });
+    } catch {
+      Alert.alert('Photo Access Needed', 'We could not open your photo library. Please try again.');
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.82,
-    });
-
-    if (result.canceled || !result.assets[0]) return;
+    if (result.canceled || !result.assets?.[0]) return;
 
     const asset = result.assets[0];
     const extension = getPhotoExtension(asset);
@@ -186,16 +209,19 @@ export default function ProfileScreen() {
     } finally {
       setAvatarUploading(false);
     }
-  }, [avatarUploading, user]);
+  }, [avatarUploading, ensurePhotoLibraryPermission, user]);
 
-  const showPhotoOptions = useCallback(() => {
+  const showPhotoOptions = useCallback(async () => {
+    if (avatarUploading) return;
+
+    const hasPermission = await ensurePhotoLibraryPermission();
+    if (!hasPermission) return;
+
     Alert.alert('Profile Photo', 'Upload a new profile picture.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Upload Photo', onPress: pickProfilePhoto },
     ]);
-  }, [pickProfilePhoto]);
-
-  const guideSeatActive = profile?.guide_seat_status === 'active';
+  }, [avatarUploading, ensurePhotoLibraryPermission, pickProfilePhoto]);
 
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'User';
   const initials = [profile?.first_name?.[0], profile?.last_name?.[0]].filter(Boolean).join('').toUpperCase() || '?';
@@ -268,7 +294,7 @@ export default function ProfileScreen() {
                   Share your city
                 </Text>
                 <Text style={[typography.bodyS, { color: theme.textSecondary, marginTop: 2 }]} numberOfLines={2}>
-                  Apply for a paid guide seat and earn from your routes.
+                  Apply to become a guide and earn from your routes.
                 </Text>
               </View>
 
@@ -292,22 +318,16 @@ export default function ProfileScreen() {
             ]}
           >
             <View style={styles.guideCardContent}>
-              <Text style={[typography.labelS, { color: theme.accent }]}>
-                {guideSeatActive ? 'Guide dashboard' : 'Guide seat'}
-              </Text>
+              <Text style={[typography.labelS, { color: theme.accent }]}>Guide dashboard</Text>
               <Text style={[typography.headingS, styles.guideCardTitle, { color: theme.text }]}>
-                {guideSeatActive ? 'View your guide activity' : 'Activate your $29.99/month guide seat'}
+                View your guide activity
               </Text>
               <Text style={[typography.bodyS, styles.guideCardMessage, { color: theme.textSecondary }]}>
-                {guideSeatActive
-                  ? 'Your guide seat is active for route creation and paid requests.'
-                  : 'A guide seat keeps your profile listed so you can create routes and get paid by users.'}
+                Create routes, manage requests, and get paid by users.
               </Text>
               <PressableButton
-                label={guideSeatActive ? 'Open Guide Dashboard' : 'Manage Guide Seat'}
-                onPress={() =>
-                  router.push(guideSeatActive ? '/profile/guide-dashboard' : '/profile/payments')
-                }
+                label="Open Guide Dashboard"
+                onPress={() => router.push('/profile/guide-dashboard')}
                 style={styles.guideDashboardButton}
               />
             </View>
@@ -316,7 +336,7 @@ export default function ProfileScreen() {
 
         <View style={[styles.navSection, { backgroundColor: theme.surface }]}>
           {profile?.is_guide ? (
-            <NavRow icon="id-card-outline" label="Guide Seat" onPress={() => router.push('/profile/payments')} />
+            <NavRow icon="card-outline" label="Guide Billing" onPress={() => router.push('/profile/payments')} />
           ) : null}
           <NavRow icon="options-outline" label="Preferences" onPress={() => router.push('/profile/preferences')} />
           <NavRow icon="help-circle-outline" label="Help Center" onPress={() => router.push('/profile/help-center')} isLast />

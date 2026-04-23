@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/constants/theme';
 import { typography } from '@/constants/typography';
-import { radius, spacing } from '@/constants/spacing';
+import { spacing } from '@/constants/spacing';
 import { PressableButton } from '@/components/ui/PressableButton';
 import { StyledTextInput } from '@/components/ui/StyledTextInput';
 
