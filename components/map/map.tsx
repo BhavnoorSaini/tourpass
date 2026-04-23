@@ -1,11 +1,13 @@
 import Mapbox, {
   Camera,
+  CircleLayer,
+  Images,
   LineLayer,
   LocationPuck,
   MapView,
-  MarkerView,
   ShapeSource,
   StyleImport,
+  SymbolLayer,
 } from '@rnmapbox/maps';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
@@ -14,14 +16,14 @@ import {
   PanResponder,
   PermissionsAndroid,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getMapOrnamentBottomOffset } from '@/constants/navigation';
 import { useTheme } from '@/constants/theme';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import type { LngLat, RoutePin, RoutePreview } from '@/types/route';
@@ -50,6 +52,10 @@ interface MapProps {
 
 export type MapHandle = {
   getVisibleBounds: () => Promise<[LngLat, LngLat] | null>;
+};
+
+type ShapeSourcePressEvent = {
+  features: GeoJSON.Feature[];
 };
 
 const requestLocationPermission = async () => {
@@ -100,9 +106,11 @@ function Map(
 ) {
   const { mapStyle, lightPreset, is3DEnabled, isDarkMapMode, isStandardMapStyle } = usePreferences();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   const mapViewRef = useRef<Mapbox.MapView>(null);
   const cameraRef = useRef<Mapbox.Camera>(null);
+  const mapOrnamentBottomOffset = getMapOrnamentBottomOffset(insets.bottom);
 
   useImperativeHandle(
     ref,
@@ -159,12 +167,49 @@ function Map(
   );
   const routePinColors = useMemo(
     () => ({
-      chipBackground: theme.accent,
-      chipBorder: theme.surface,
-      chipShadow: theme.text,
-      chipIcon: theme.accentText,
+      glow: isDarkMapMode ? 'rgba(251, 146, 60, 0.24)' : 'rgba(217, 119, 87, 0.14)',
+      fill: isDarkMapMode ? '#f97316' : theme.accent,
+      stroke: isDarkMapMode ? '#fff7ed' : '#ffffff',
+      iconOpacity: isDarkMapMode ? 1 : 0.96,
     }),
-    [theme],
+    [isDarkMapMode, theme],
+  );
+  const routeLineColors = useMemo(
+    () =>
+      isDarkMapMode
+        ? {
+            casing: 'rgba(15, 23, 42, 0.88)',
+            selected: '#fff7ed',
+            selectedOpacity: 0.98,
+            unselected: '#fdba74',
+            unselectedOpacity: 0.82,
+          }
+        : {
+            casing: 'rgba(255, 255, 255, 0.94)',
+            selected: '#1d4ed8',
+            selectedOpacity: 0.94,
+            unselected: '#38bdf8',
+            unselectedOpacity: 0.72,
+          },
+    [isDarkMapMode],
+  );
+  const routePinCollection = useMemo<GeoJSON.FeatureCollection>(
+    () => ({
+      type: 'FeatureCollection',
+      features: routePins.map((routePin) => ({
+        type: 'Feature',
+        id: routePin.routeId,
+        properties: {
+          routeId: routePin.routeId,
+          title: routePin.title,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: routePin.coordinate,
+        },
+      })),
+    }),
+    [routePins],
   );
 
   useEffect(() => {
@@ -247,6 +292,17 @@ function Map(
     onPressRoutePin?.(routeId);
   };
 
+  const handleRoutePinSourcePress = (event: ShapeSourcePressEvent) => {
+    const pressedFeature = event.features.find(
+      (feature) => typeof feature?.properties?.routeId === 'string',
+    );
+    const pressedRouteId = pressedFeature?.properties?.routeId;
+
+    if (typeof pressedRouteId === 'string') {
+      handleRoutePinPress(pressedRouteId);
+    }
+  };
+
   const activeTrackHeight = SLIDER_HEIGHT - pitchToY(pitch);
 
   return (
@@ -255,6 +311,9 @@ function Map(
         ref={mapViewRef}
         style={styles.map}
         styleURL={mapStyle}
+        logoPosition={{ bottom: mapOrnamentBottomOffset, left: 12 }}
+        attributionPosition={{ bottom: mapOrnamentBottomOffset, right: 12 }}
+        scaleBarEnabled={false}
         onPress={handleMapPress}
         onCameraChanged={(event: any) => {
           if (event?.gestures?.isGestureActive && followUser) {
@@ -287,6 +346,12 @@ function Map(
           pulsing={{ isEnabled: true }}
         />
 
+        <Images
+          images={{
+            routePinMapIcon: require('../../assets/images/route-pin-map-icon.png'),
+          }}
+        />
+
         {routePreviews.map((routePreview, index) => {
           const isSelected = routePreview.routeId === selectedRouteId;
           return (
@@ -306,13 +371,27 @@ function Map(
               onPress={() => handleRoutePress(routePreview.routeId)}
             >
               <LineLayer
-                id={`route-line-${routePreview.routeId}`}
+                id={`route-line-casing-${routePreview.routeId}`}
                 style={{
-                  lineColor: isSelected ? '#1d4ed8' : '#38bdf8',
-                  lineWidth: isSelected ? 7 : 5,
-                  lineOpacity: isSelected ? 0.94 : 0.54,
+                  lineColor: routeLineColors.casing,
+                  lineWidth: isSelected ? 9 : 7,
+                  lineOpacity: isDarkMapMode ? 0.82 : 0.9,
                   lineCap: 'round',
                   lineJoin: 'round',
+                  lineSortKey: index,
+                }}
+              />
+              <LineLayer
+                id={`route-line-${routePreview.routeId}`}
+                style={{
+                  lineColor: isSelected ? routeLineColors.selected : routeLineColors.unselected,
+                  lineWidth: isSelected ? 6.5 : 4.5,
+                  lineOpacity: isSelected
+                    ? routeLineColors.selectedOpacity
+                    : routeLineColors.unselectedOpacity,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                  lineBlur: isDarkMapMode ? 0.18 : 0.06,
                   lineSortKey: index,
                 }}
               />
@@ -320,39 +399,42 @@ function Map(
           );
         })}
 
-        {routePins.map((routePin) => (
-          <MarkerView
-            key={routePin.routeId}
-            coordinate={routePin.coordinate}
-            anchor={{ x: 0.5, y: 0.5 }}
-            allowOverlap
-            allowOverlapWithPuck
-            isSelected={false}
+        {routePinCollection.features.length > 0 ? (
+          <ShapeSource
+            id="route-pins-source"
+            shape={routePinCollection}
+            onPress={handleRoutePinSourcePress}
+            hitbox={{ width: 44, height: 44 }}
           >
-            <Pressable
-              collapsable={false}
-              onPress={() => handleRoutePinPress(routePin.routeId)}
-              style={styles.routePinMarker}
-            >
-              <View
-                style={[
-                  styles.routePinCircle,
-                  {
-                    backgroundColor: routePinColors.chipBackground,
-                    borderColor: routePinColors.chipBorder,
-                    shadowColor: routePinColors.chipShadow,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="map"
-                  size={14}
-                  color={routePinColors.chipIcon}
-                />
-              </View>
-            </Pressable>
-          </MarkerView>
-        ))}
+            <CircleLayer
+              id="route-pin-glow"
+              style={{
+                circleRadius: 16,
+                circleColor: routePinColors.glow,
+              }}
+            />
+            <CircleLayer
+              id="route-pin-outer"
+              style={{
+                circleRadius: 12,
+                circleColor: routePinColors.fill,
+                circleStrokeColor: routePinColors.stroke,
+                circleStrokeWidth: 2.5,
+                circleOpacity: 0.98,
+              }}
+            />
+            <SymbolLayer
+              id="route-pin-icon"
+              style={{
+                iconImage: 'routePinMapIcon',
+                iconSize: 0.34,
+                iconAllowOverlap: true,
+                iconIgnorePlacement: true,
+                iconOpacity: routePinColors.iconOpacity,
+              }}
+            />
+          </ShapeSource>
+        ) : null}
       </MapView>
 
       <View style={styles.sliderContainer} pointerEvents="box-none">
@@ -531,23 +613,6 @@ const styles = StyleSheet.create({
     shadowColor: '#020617',
     shadowOpacity: 0.16,
     shadowRadius: 12,
-    elevation: 6,
-  },
-  routePinMarker: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  routePinCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
     elevation: 6,
   },
 });

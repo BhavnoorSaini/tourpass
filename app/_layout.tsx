@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { LogBox } from 'react-native';
 import { SplashScreen, Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '@/providers/AuthProvider';
@@ -10,6 +11,11 @@ import { DMSans_400Regular, DMSans_500Medium, DMSans_700Bold } from '@expo-googl
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+LogBox.ignoreLogs([
+  'SafeAreaView has been deprecated and will be removed in a future release.',
+  'Uncaught (in promise, id: 0) Error: Unknown reactTag:',
+]);
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({

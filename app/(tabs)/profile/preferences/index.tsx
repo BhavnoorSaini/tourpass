@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, Switch, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { useTheme } from '@/constants/theme';
 import { typography } from '@/constants/typography';

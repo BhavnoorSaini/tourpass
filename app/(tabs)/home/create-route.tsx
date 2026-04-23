@@ -14,12 +14,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Mapbox, {
   Camera,
+  CircleLayer,
   LineLayer,
   LocationPuck,
   MapView,
-  PointAnnotation,
   ShapeSource,
   StyleImport,
+  SymbolLayer,
 } from '@rnmapbox/maps';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,6 +41,7 @@ import { border, useTheme } from '@/constants/theme';
 import { typography } from '@/constants/typography';
 import { radius, spacing } from '@/constants/spacing';
 import { PressableButton } from '@/components/ui/PressableButton';
+import { getMapOrnamentBottomOffset } from '@/constants/navigation';
 
 const accessToken = process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN;
 if (!accessToken) throw new Error('Missing Mapbox token.');
@@ -62,10 +64,11 @@ function formatDuration(s: number) {
 export default function CreateRouteScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { mapStyle, lightPreset, is3DEnabled, isStandardMapStyle } = usePreferences();
+  const { mapStyle, lightPreset, is3DEnabled, isDarkMapMode, isStandardMapStyle } = usePreferences();
   const { addRoute } = useRoutes();
   const { user } = useAuth();
   const theme = useTheme();
+  const mapOrnamentBottomOffset = getMapOrnamentBottomOffset(insets.bottom);
 
   const sessionTokenRef = useRef(createSearchSessionToken());
   const cameraRef = useRef<Mapbox.Camera>(null);
@@ -91,11 +94,53 @@ export default function CreateRouteScreen() {
     selectedRouteIndex !== null ? routeOptions[selectedRouteIndex] ?? null : null;
   const visibleSuggestions = suggestions.slice(0, 5);
   const shouldShowSuggestions = suggestionsOpen && suggestions.length > 0;
+  const stopFeatureCollection = useMemo<GeoJSON.FeatureCollection>(
+    () => ({
+      type: 'FeatureCollection',
+      features: stops.map((stop, index) => ({
+        type: 'Feature',
+        id: stop.id,
+        properties: {
+          label: String(index + 1),
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: stop.coordinate,
+        },
+      })),
+    }),
+    [stops],
+  );
+  const routeLineColors = useMemo(
+    () =>
+      isDarkMapMode
+        ? {
+            selected: '#fff7ed',
+            unselected: '#fdba74',
+            casing: 'rgba(15, 23, 42, 0.88)',
+            stopFill: '#f97316',
+            stopStroke: '#fff7ed',
+            stopGlow: 'rgba(251, 146, 60, 0.24)',
+            label: '#fff7ed',
+            labelHalo: 'rgba(15, 23, 42, 0.92)',
+          }
+        : {
+            selected: theme.accent,
+            unselected: theme.textTertiary,
+            casing: 'rgba(255, 255, 255, 0.94)',
+            stopFill: theme.accent,
+            stopStroke: '#ffffff',
+            stopGlow: 'rgba(217, 119, 87, 0.12)',
+            label: theme.accentText,
+            labelHalo: 'rgba(255, 255, 255, 0.88)',
+          },
+    [isDarkMapMode, theme.accent, theme.accentText, theme.textTertiary],
+  );
 
   const routeStatusText = useMemo(() => {
     if (directionsLoading) return 'Finding paths…';
     if (selectedRouteOption) return `${formatDistance(selectedRouteOption.distanceMeters)} · ${formatDuration(selectedRouteOption.durationSeconds)}`;
-    if (routeOptions.length > 0) return 'Select a path on the map';
+    if (routeOptions.length > 0) return 'Path ready to publish';
     if (pendingStop) return 'Add at least 2 stops';
     return 'Search for a place to begin';
   }, [directionsLoading, pendingStop, routeOptions.length, selectedRouteOption]);
@@ -122,10 +167,10 @@ export default function CreateRouteScreen() {
     if (!user) return;
 
     let cancelled = false;
-    const verifyGuideSeat = async () => {
+    const verifyGuideAccess = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('is_guide, guide_seat_status')
+        .select('is_guide')
         .eq('id', user.id)
         .single();
 
@@ -135,17 +180,10 @@ export default function CreateRouteScreen() {
         Alert.alert('Guide Access Required', 'Apply to become a guide before creating routes.', [
           { text: 'OK', onPress: () => router.replace('/profile/become-guide') },
         ]);
-        return;
-      }
-
-      if (data.guide_seat_status !== 'active') {
-        Alert.alert('Guide Seat Required', 'Activate your Guide Seat before creating routes.', [
-          { text: 'OK', onPress: () => router.replace('/profile/payments') },
-        ]);
       }
     };
 
-    verifyGuideSeat();
+    verifyGuideAccess();
     return () => {
       cancelled = true;
     };
@@ -175,7 +213,10 @@ export default function CreateRouteScreen() {
       setDirectionsLoading(true);
       try {
         const opts = await fetchDirectionsOptions(stops.map((s) => s.coordinate), 'walking');
-        if (!cancelled) { setRouteOptions(opts); setSelectedRouteIndex(null); }
+        if (!cancelled) {
+          setRouteOptions(opts);
+          setSelectedRouteIndex(opts.length > 0 ? 0 : null);
+        }
       } catch (e) {
         if (!cancelled) { console.error('Directions failed', e); setRouteOptions([]); }
       } finally { if (!cancelled) setDirectionsLoading(false); }
@@ -232,16 +273,15 @@ export default function CreateRouteScreen() {
   const handlePublish = async () => {
     if (!title.trim()) { Alert.alert('Title Required', 'Enter a title.'); return; }
     if (stops.length < 2) { Alert.alert('More Stops', 'Add at least 2 stops.'); return; }
-    if (selectedRouteIndex === null) { Alert.alert('Select Path', 'Tap a path on the map.'); return; }
+    if (!selectedRouteOption) { Alert.alert('Route Missing', 'Wait for a route to finish loading.'); return; }
     if (!user) return;
 
     setPublishing(true);
-    const selected = routeOptions[selectedRouteIndex];
     const routeData = {
       stops: stops.map((s) => ({ name: s.name, fullAddress: s.fullAddress, coordinate: s.coordinate, mapboxId: s.mapboxId })),
-      polyline: selected.coordinates,
-      durationSeconds: selected.durationSeconds,
-      distanceMeters: selected.distanceMeters,
+      polyline: selectedRouteOption.coordinates,
+      durationSeconds: selectedRouteOption.durationSeconds,
+      distanceMeters: selectedRouteOption.distanceMeters,
     };
 
     const { data, error } = await supabase.from('routes').insert({
@@ -283,6 +323,9 @@ export default function CreateRouteScreen() {
       <MapView
         style={styles.map}
         styleURL={mapStyle}
+        logoPosition={{ bottom: mapOrnamentBottomOffset, left: 12 }}
+        attributionPosition={{ bottom: mapOrnamentBottomOffset, right: 12 }}
+        scaleBarEnabled={false}
         onPress={handleMapPress}
         onCameraChanged={(e: any) => {
           if (e?.gestures?.isGestureActive && followUser) setFollowUser(false);
@@ -313,20 +356,62 @@ export default function CreateRouteScreen() {
               }}
             >
               <LineLayer
+                id={`route-line-casing-${i}`}
+                style={{
+                  lineColor: routeLineColors.casing,
+                  lineWidth: sel ? 8.5 : 6.5,
+                  lineOpacity: isDarkMapMode ? 0.82 : 0.9,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+              <LineLayer
                 id={`route-line-${i}`}
-                style={{ lineColor: sel ? theme.accent : theme.textTertiary, lineWidth: sel ? 6 : 4, lineOpacity: sel ? 1 : 0.4, lineCap: 'round', lineJoin: 'round' }}
+                style={{
+                  lineColor: sel ? routeLineColors.selected : routeLineColors.unselected,
+                  lineWidth: sel ? 5.5 : 4,
+                  lineOpacity: sel ? 1 : isDarkMapMode ? 0.76 : 0.5,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                  lineBlur: isDarkMapMode ? 0.14 : 0.04,
+                }}
               />
             </ShapeSource>
           );
         })}
 
-        {stops.map((stop, i) => (
-          <PointAnnotation key={stop.id} id={stop.id} coordinate={stop.coordinate}>
-            <View style={[styles.stopMarker, { backgroundColor: theme.accent, borderColor: 'white', borderWidth: 2 }]}>
-              <Text style={[typography.labelS, { color: theme.accentText, fontSize: 10 }]}>{i + 1}</Text>
-            </View>
-          </PointAnnotation>
-        ))}
+        {stopFeatureCollection.features.length > 0 ? (
+          <ShapeSource id="route-stops-source" shape={stopFeatureCollection}>
+            <CircleLayer
+              id="route-stops-glow"
+              style={{
+                circleRadius: 15,
+                circleColor: routeLineColors.stopGlow,
+              }}
+            />
+            <CircleLayer
+              id="route-stops-circle"
+              style={{
+                circleRadius: 11.5,
+                circleColor: routeLineColors.stopFill,
+                circleStrokeColor: routeLineColors.stopStroke,
+                circleStrokeWidth: 2.5,
+              }}
+            />
+            <SymbolLayer
+              id="route-stops-label"
+              style={{
+                textField: ['get', 'label'] as any,
+                textSize: 10,
+                textColor: routeLineColors.label,
+                textHaloColor: routeLineColors.labelHalo,
+                textHaloWidth: 0.75,
+                textAllowOverlap: true,
+                textIgnorePlacement: true,
+              }}
+            />
+          </ShapeSource>
+        ) : null}
       </MapView>
 
       <View style={[styles.topBar, { top: insets.top + spacing.md }]}>
@@ -469,7 +554,7 @@ export default function CreateRouteScreen() {
             label="Publish"
             variant="secondary"
             loading={publishing}
-            disabled={publishing || stops.length < 2 || selectedRouteIndex === null}
+            disabled={publishing || directionsLoading || stops.length < 2 || !selectedRouteOption}
             onPress={handlePublish}
             style={styles.actionButton}
           />

@@ -126,10 +126,10 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, LegalDocument> = {
         ],
       },
       {
-        title: 'Guide Seat Subscription',
+        title: 'Guide Billing',
         body: [
-          'Approved guides need an active Guide Seat subscription to stay listed as a guide, create routes, and receive paid requests from users.',
-          'Guide Seat pricing and billing terms are shown at purchase. Fees are generally non-refundable except where required by law or platform rules.',
+          'Approved guides may be billed monthly to stay on TourPass as a guide, create routes, and receive paid requests from users.',
+          'Guide pricing and billing terms are shown at purchase. Fees are generally non-refundable except where required by law or platform rules.',
         ],
       },
       {

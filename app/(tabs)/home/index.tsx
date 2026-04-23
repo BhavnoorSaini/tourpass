@@ -59,18 +59,18 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { routes } = useRoutes();
   const { user } = useAuth();
-  const [canCreateRoutes, setCanCreateRoutes] = useState(false);
+  const [isGuide, setIsGuide] = useState(false);
 
   useEffect(() => {
-    if (!user) { setCanCreateRoutes(false); return; }
+    if (!user) { setIsGuide(false); return; }
     let cancelled = false;
     supabase
       .from('profiles')
-      .select('is_guide, guide_seat_status')
+      .select('is_guide')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
-        if (!cancelled) setCanCreateRoutes(!!data?.is_guide && data?.guide_seat_status === 'active');
+        if (!cancelled) setIsGuide(!!data?.is_guide);
       });
     return () => { cancelled = true; };
   }, [user]);
@@ -267,7 +267,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {canCreateRoutes && (
+        {isGuide && (
           <Pressable
             onPress={() => router.push('/(tabs)/home/create-route')}
             style={[styles.addButton, { backgroundColor: theme.accent }]}

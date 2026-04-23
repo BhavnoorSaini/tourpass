@@ -1,11 +1,7 @@
 create extension if not exists pgcrypto;
 
 alter table public.profiles
-  add column if not exists avatar_url text,
-  add column if not exists guide_seat_status text not null default 'inactive',
-  add column if not exists guide_seat_plan text,
-  add column if not exists guide_seat_price_cents integer,
-  add column if not exists guide_seat_activated_at timestamptz;
+  add column if not exists avatar_url text;
 
 create table if not exists public.route_completions (
   id uuid primary key default gen_random_uuid(),
@@ -67,53 +63,6 @@ begin
       for update
       using (auth.uid() = user_id)
       with check (auth.uid() = user_id);
-  end if;
-end $$;
-
-create table if not exists public.guide_seat_subscriptions (
-  id uuid primary key default gen_random_uuid(),
-  guide_id uuid not null references public.profiles(id) on delete cascade,
-  status text not null default 'active',
-  plan_name text not null default 'monthly',
-  price_cents integer not null default 2999,
-  started_at timestamptz not null default now(),
-  current_period_started_at timestamptz not null default now(),
-  current_period_ends_at timestamptz,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists guide_seat_subscriptions_guide_started_idx
-  on public.guide_seat_subscriptions (guide_id, started_at desc);
-
-alter table public.guide_seat_subscriptions enable row level security;
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies
-    where schemaname = 'public'
-      and tablename = 'guide_seat_subscriptions'
-      and policyname = 'Guides can read own guide seat subscriptions'
-  ) then
-    create policy "Guides can read own guide seat subscriptions"
-      on public.guide_seat_subscriptions
-      for select
-      using (auth.uid() = guide_id);
-  end if;
-end $$;
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies
-    where schemaname = 'public'
-      and tablename = 'guide_seat_subscriptions'
-      and policyname = 'Guides can create own guide seat subscriptions'
-  ) then
-    create policy "Guides can create own guide seat subscriptions"
-      on public.guide_seat_subscriptions
-      for insert
-      with check (auth.uid() = guide_id);
   end if;
 end $$;
 

@@ -1,0 +1,28 @@
+diff --git a/node_modules/@rnmapbox/maps/src/components/MapView.tsx b/node_modules/@rnmapbox/maps/src/components/MapView.tsx
+index 7e79359..0d368a8 100644
+--- a/node_modules/@rnmapbox/maps/src/components/MapView.tsx
++++ b/node_modules/@rnmapbox/maps/src/components/MapView.tsx
+@@ -661,7 +661,22 @@ class MapView extends NativeBridgeComponent(
+ 
+       this._runNativeMethod('setHandledMapChangedEvents', this._nativeRef, [
+         events,
+-      ]);
++      ]).catch((error) => {
++        const message = String(error?.message ?? error ?? '');
++
++        // Ignore stale-ref races while React updates or unmounts the MapView.
++        if (
++          message.includes('Unknown reactTag') ||
++          message.includes('Could not find handle for native ref')
++        ) {
++          return;
++        }
++
++        console.warn(
++          'rnmapbox/maps: failed to update handled map events',
++          error,
++        );
++      });
+     }
+   }
+ 
