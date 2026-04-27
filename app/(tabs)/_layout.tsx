@@ -23,6 +23,15 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const theme = scheme === 'dark' ? darkTheme : lightTheme;
   const isDark = scheme === 'dark';
+  const focusedRoute = state.routes[state.index];
+  const focusedOptions = focusedRoute ? descriptors[focusedRoute.key]?.options : undefined;
+  const focusedTabBarStyle = StyleSheet.flatten(focusedOptions?.tabBarStyle) as
+    | { display?: string }
+    | undefined;
+
+  if (focusedTabBarStyle?.display === 'none') {
+    return null;
+  }
 
   return (
     <View pointerEvents="box-none" style={styles.tabBarFrame}>

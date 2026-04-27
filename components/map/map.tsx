@@ -9,7 +9,7 @@ import Mapbox, {
   StyleImport,
   SymbolLayer,
 } from '@rnmapbox/maps';
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -130,6 +130,10 @@ function Map(
   const [followUser, setFollowUser] = useState(true);
   const routePressHandledRef = useRef(false);
 
+  const disableFollowUser = useCallback(() => {
+    setFollowUser(false);
+  }, []);
+
   const knobAnim = useRef(new Animated.Value(pitchToY(pitch))).current;
   const knobYRef = useRef<number>(pitchToY(pitch));
   const startYRef = useRef<number>(0);
@@ -226,13 +230,13 @@ function Map(
       return;
     }
 
-    setFollowUser(false);
+    disableFollowUser();
     cameraRef.current?.setCamera({
       centerCoordinate: highlightedCoordinate,
       zoomLevel: 14,
       animationDuration: 700,
     });
-  }, [highlightedCoordinate]);
+  }, [disableFollowUser, highlightedCoordinate]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -240,9 +244,7 @@ function Map(
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         startYRef.current = knobYRef.current;
-        if (followUser) {
-          setFollowUser(false);
-        }
+        disableFollowUser();
       },
       onPanResponderMove: (_evt, gestureState) => {
         const newY = Math.max(
@@ -258,9 +260,7 @@ function Map(
   ).current;
 
   const handleMapPress = () => {
-    if (followUser) {
-      setFollowUser(false);
-    }
+    disableFollowUser();
 
     if (routePressHandledRef.current) {
       routePressHandledRef.current = false;
@@ -315,9 +315,10 @@ function Map(
         attributionPosition={{ bottom: mapOrnamentBottomOffset, right: 12 }}
         scaleBarEnabled={false}
         onPress={handleMapPress}
+        onTouchStart={disableFollowUser}
         onCameraChanged={(event: any) => {
-          if (event?.gestures?.isGestureActive && followUser) {
-            setFollowUser(false);
+          if (event?.gestures?.isGestureActive) {
+            disableFollowUser();
           }
         }}
       >

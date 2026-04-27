@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Mapbox, {
   Camera,
@@ -64,6 +64,7 @@ function formatDuration(s: number) {
 export default function CreateRouteScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigation();
   const { mapStyle, lightPreset, is3DEnabled, isDarkMapMode, isStandardMapStyle } = usePreferences();
   const { addRoute } = useRoutes();
   const { user } = useAuth();
@@ -89,6 +90,10 @@ export default function CreateRouteScreen() {
   const [selectionLoading, setSelectionLoading] = useState(false);
   const [directionsLoading, setDirectionsLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
+
+  const disableFollowUser = useCallback(() => {
+    setFollowUser(false);
+  }, []);
 
   const selectedRouteOption =
     selectedRouteIndex !== null ? routeOptions[selectedRouteIndex] ?? null : null;
@@ -144,6 +149,14 @@ export default function CreateRouteScreen() {
     if (pendingStop) return 'Add at least 2 stops';
     return 'Search for a place to begin';
   }, [directionsLoading, pendingStop, routeOptions.length, selectedRouteOption]);
+
+  useLayoutEffect(() => {
+    const parent = navigation.getParent();
+    parent?.setOptions({ tabBarStyle: { display: 'none' } });
+    return () => {
+      parent?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation]);
 
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
@@ -243,6 +256,7 @@ export default function CreateRouteScreen() {
       setSuggestions([]); setSuggestionsOpen(false); setSearchFocused(false);
       Keyboard.dismiss();
       sessionTokenRef.current = createSearchSessionToken();
+      disableFollowUser();
       cameraRef.current?.setCamera({ centerCoordinate: place.coordinate, zoomLevel: 14, animationDuration: 700 });
     } catch {
       Alert.alert('Location Error', 'Could not open this location.');
@@ -310,7 +324,7 @@ export default function CreateRouteScreen() {
 
   const handleMapPress = () => {
     dismissSearchResults();
-    if (followUser) setFollowUser(false);
+    disableFollowUser();
     if (routeTapHandledRef.current) { routeTapHandledRef.current = false; return; }
     setSelectedRouteIndex(null);
   };
@@ -327,8 +341,9 @@ export default function CreateRouteScreen() {
         attributionPosition={{ bottom: mapOrnamentBottomOffset, right: 12 }}
         scaleBarEnabled={false}
         onPress={handleMapPress}
+        onTouchStart={disableFollowUser}
         onCameraChanged={(e: any) => {
-          if (e?.gestures?.isGestureActive && followUser) setFollowUser(false);
+          if (e?.gestures?.isGestureActive) disableFollowUser();
         }}
       >
         <Camera
