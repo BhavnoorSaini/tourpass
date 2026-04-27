@@ -38,6 +38,20 @@ const EMPTY_STATS: ProfileStats = {
   citiesVisited: 0,
 };
 
+function hasPhotoLibraryAccess(permission: ImagePicker.MediaLibraryPermissionResponse) {
+  return (
+    permission.granted ||
+    permission.accessPrivileges === 'all' ||
+    permission.accessPrivileges === 'limited'
+  );
+}
+
+function openAppSettings() {
+  Linking.openSettings().catch(() => {
+    Alert.alert('Settings Unavailable', 'Open your device settings to allow photo library access.');
+  });
+}
+
 function getPhotoExtension(asset: ImagePicker.ImagePickerAsset) {
   const fileNameExtension = asset.fileName?.split('.').pop()?.toLowerCase();
   if (fileNameExtension) return fileNameExtension;
@@ -113,8 +127,16 @@ export default function ProfileScreen() {
   );
 
   const ensurePhotoLibraryPermission = useCallback(async () => {
-    const currentPermission = await ImagePicker.getMediaLibraryPermissionsAsync();
-    if (currentPermission.granted) return true;
+    let currentPermission: ImagePicker.MediaLibraryPermissionResponse;
+    try {
+      currentPermission = await ImagePicker.getMediaLibraryPermissionsAsync(false);
+    } catch (error) {
+      console.warn('Failed to read photo library permission', error);
+      Alert.alert('Photo Access Needed', 'We could not check photo library access. Please try again.');
+      return false;
+    }
+
+    if (hasPhotoLibraryAccess(currentPermission)) return true;
 
     if (!currentPermission.canAskAgain) {
       Alert.alert(
@@ -122,14 +144,22 @@ export default function ProfileScreen() {
         'Allow photo library access in Settings to upload a profile picture.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          { text: 'Open Settings', onPress: openAppSettings },
         ],
       );
       return false;
     }
 
-    const requestedPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (requestedPermission.granted) return true;
+    let requestedPermission: ImagePicker.MediaLibraryPermissionResponse;
+    try {
+      requestedPermission = await ImagePicker.requestMediaLibraryPermissionsAsync(false);
+    } catch (error) {
+      console.warn('Failed to request photo library permission', error);
+      Alert.alert('Photo Access Needed', 'We could not request photo library access. Please try again.');
+      return false;
+    }
+
+    if (hasPhotoLibraryAccess(requestedPermission)) return true;
 
     Alert.alert(
       'Photo Access Needed',
@@ -138,7 +168,7 @@ export default function ProfileScreen() {
         ? [{ text: 'OK', style: 'default' }]
         : [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            { text: 'Open Settings', onPress: openAppSettings },
           ],
     );
     return false;
@@ -212,16 +242,13 @@ export default function ProfileScreen() {
   }, [avatarUploading, ensurePhotoLibraryPermission, user]);
 
   const showPhotoOptions = useCallback(async () => {
-    if (avatarUploading) return;
-
-    const hasPermission = await ensurePhotoLibraryPermission();
-    if (!hasPermission) return;
+    if (!user || avatarUploading) return;
 
     Alert.alert('Profile Photo', 'Upload a new profile picture.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Upload Photo', onPress: pickProfilePhoto },
     ]);
-  }, [avatarUploading, ensurePhotoLibraryPermission, pickProfilePhoto]);
+  }, [avatarUploading, pickProfilePhoto, user]);
 
   const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'User';
   const initials = [profile?.first_name?.[0], profile?.last_name?.[0]].filter(Boolean).join('').toUpperCase() || '?';
@@ -245,7 +272,7 @@ export default function ProfileScreen() {
         <View style={styles.avatarBlock}>
           <Pressable
             onPress={showPhotoOptions}
-            disabled={avatarUploading}
+            disabled={!user || avatarUploading}
             style={[styles.avatar, { backgroundColor: theme.surface }]}
           >
             {profile?.avatar_url ? (
@@ -338,8 +365,7 @@ export default function ProfileScreen() {
           {profile?.is_guide ? (
             <NavRow icon="card-outline" label="Guide Billing" onPress={() => router.push('/profile/payments')} />
           ) : null}
-          <NavRow icon="options-outline" label="Preferences" onPress={() => router.push('/profile/preferences')} />
-          <NavRow icon="help-circle-outline" label="Help Center" onPress={() => router.push('/profile/help-center')} isLast />
+          <NavRow icon="options-outline" label="Preferences" onPress={() => router.push('/profile/preferences')} isLast />
         </View>
 
       </ScrollView>
